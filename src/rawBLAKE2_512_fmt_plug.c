@@ -26,12 +26,14 @@ john_register_one(&fmt_rawBLAKE2);
 
 #define FORMAT_LABEL            "Raw-Blake2"
 #define FORMAT_NAME             ""
-#if !defined(JOHN_NO_SIMD) && defined(__AVX__)
-#define ALGORITHM_NAME          "128/128 AVX"
+#if !defined(JOHN_NO_SIMD) && defined(__AVX512F__)
+#define ALGORITHM_NAME          "512/512 AVX512F"
+#elif !defined(JOHN_NO_SIMD) && defined(__AVX2__)
+#define ALGORITHM_NAME          "256/256 AVX2"
 #elif !defined(JOHN_NO_SIMD) && defined(__XOP__)
 #define ALGORITHM_NAME          "128/128 XOP"
-#elif !defined(JOHN_NO_SIMD) && defined(__SSE4_1__)
-#define ALGORITHM_NAME          "128/128 SSE4.1"
+#elif !defined(JOHN_NO_SIMD) && defined(__AVX__)
+#define ALGORITHM_NAME          "128/128 AVX"
 #elif !defined(JOHN_NO_SIMD) && defined(__SSSE3__)
 #define ALGORITHM_NAME          "128/128 SSSE3"
 #elif !defined(JOHN_NO_SIMD) && defined(__SSE2__)
@@ -161,7 +163,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
-		(void)blake2b((uint8_t *)crypt_out[index], saved_key[index], NULL, 64, saved_len[index], 0);
+		(void)blake2b((uint8_t *)crypt_out[index], 64, saved_key[index], saved_len[index], NULL, 0);
 	}
 
 	return count;

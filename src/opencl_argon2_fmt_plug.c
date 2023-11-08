@@ -32,6 +32,7 @@ john_register_one(&fmt_opencl_argon2);
 #include "argon2.h"
 #include "argon2_core.h"
 #include "argon2_encoding.h"
+#include "blake2.h"
 #include "opencl_common.h"
 
 #define FORMAT_LABEL            "argon2-opencl"
@@ -889,7 +890,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	context.ad = NULL;
 	context.adlen = 0;
 	context.flags = ARGON2_DEFAULT_FLAGS;
-	context.pseudo_rands = NULL;
 
 	// Pre-processing on the CPU
 	for (i = 0; i < count; i++) {
@@ -904,10 +904,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		context.lanes = saved_salt.lanes;
 		context.threads = saved_salt.lanes;
 		context.version = saved_salt.version;
-		context.memory = blocks_in_out + i * ARGON2_PREHASH_DIGEST_LENGTH;
 
 		/* 3. Initialization: Hashing inputs */
-		opencl_argon2_initialize(&context, saved_salt.type);
+		uint8_t *blockhash = blocks_in_out + i * ARGON2_PREHASH_DIGEST_LENGTH;
+		argon2_initial_hash(blockhash, &context, saved_salt.type);
 	}
 
 	// Run on the GPU
