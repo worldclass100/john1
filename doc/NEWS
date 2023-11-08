@@ -343,6 +343,10 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Add bitlocker2john.py to improve BitLocker hash extraction.  [holly-o; 2024]
 
+- Add KDBX4 support to KeePass formats (and keepass2john).  This means Argon2
+  support as well, and keepass-argon2-opencl is made a separate format.
+  [magnum; 2024]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
