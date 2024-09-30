@@ -202,6 +202,9 @@ inline uint funnel_shift_right_imm(uint hi, uint lo, uint s)
 #endif
 #endif
 
+#define block_swap32(W, len)	for (uint i = 0; i < len; i++) W[i] = SWAP32(W[i])
+#define block_swap64(W, len)	for (uint i = 0; i < len; i++) W[i] = SWAP64(W[i])
+
 inline ushort SWAP16(ushort x)
 {
 	return ((x << 8) + (x >> 8));
@@ -348,6 +351,8 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define GETCHAR_BE(buf, index) (((uchar*)(buf))[(index) ^ 3])
 #define GETCHAR_MC(buf, index) (((MAYBE_CONSTANT uchar*)(buf))[(index)])
 #define LASTCHAR_BE(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << ((((index) & 3) ^ 3) << 3))) + ((val) << ((((index) & 3) ^ 3) << 3))
+#define LASTCHAR_BE64(buf, index, val) (buf)[(index)>>3] = ((buf)[(index)>>3] & (0xffffffffffffff00UL << ((((index) & 7) ^ 7) << 3))) + ((ulong)(val) << ((((index) & 7) ^ 7) << 3))
+#define LASTCHAR(buf, index, val) (buf)[(index)>>2] = ((buf)[(index)>>2] & (0xffffff00U << (((index) & 3) << 3))) + ((val) << (((index) & 3) << 3))
 
 #if no_byte_addressable(DEVICE_INFO) || !SCALAR || (gpu_amd(DEVICE_INFO) && defined(AMD_PUTCHAR_NOCAST))
 /* 32-bit stores */
@@ -591,75 +596,42 @@ inline int memmem_pc(const void *haystack, size_t haystack_len,
 #define STRINGIZE(s) STRINGIZE2(s)
 
 /*
- * The reason the functions below are macros is it's the only way we can use
- * them regardless of memory type (eg. __local or __global). The downside is
- * we can't cast them so we need eg. dump8_le for a char array, or output will
- * not be correct.
+ * The below macros need to be called with pointer already cast to
+ * uchar pointer of its type - such as "(__constant uchar*)salt->u"
+ * because type is unknown to us so void* can't help us.
  */
 
-/* Dump an array (or variable) as hex */
-#define dump(x)   dump_stuff_msg(STRINGIZE(x), x, sizeof(x))
-#define dump_stuff(x, size) dump_stuff_msg(STRINGIZE(x), x, size)
+#define dump_le(x, size) dump_stuff_msg(STRINGIZE(x), x, size)
+#define dump_be(x, size) dump_stuff_be_msg(STRINGIZE(x), x, size)
+#define dump_be64(x, size) dump_stuff_be64_msg(STRINGIZE(x), x, size)
 
-/*
- * This clumsy beast finally hides the problem from user.
- */
 #define dump_stuff_msg(msg, x, size) do {	  \
-		switch (sizeof((x)[0])) { \
-		case 8: \
-			dump_stuff64_msg(msg, x, size); \
-			break; \
-		case 4: \
-			dump_stuff32_msg(msg, x, size); \
-			break; \
-		case 2: \
-			dump_stuff16_msg(msg, x, size); \
-			break; \
-		case 1: \
-			dump_stuff8_msg(msg, x, size); \
-			break; \
-		} \
-	} while (0)
-
-/* requires char/uchar */
-#define dump_stuff8_msg(msg, x, size) do {	  \
-		uint ii; \
 		printf("%s : ", msg); \
-		for (ii = 0; ii < (uint)size; ii++) { \
-			printf("%02x", (x)[ii]); \
-			if (ii % 4 == 3) \
+		for (uint xedni_ = 0; xedni_ < (uint)size; xedni_++) { \
+			printf("%02x", (x)[xedni_]); \
+			if (xedni_ % 4 == 3) \
 				printf(" "); \
 		} \
 		printf("\n"); \
 	} while (0)
 
-/* requires short/ushort */
-#define dump_stuff16_msg(msg, x, size) do {	  \
-		uint ii; \
+#define dump_stuff_be_msg(msg, x, size) do {	  \
 		printf("%s : ", msg); \
-		for (ii = 0; ii < (uint)(size)/2; ii++) { \
-			printf("%04x", SWAP16((x)[ii])); \
-			if (ii % 2 == 1) \
+		for (uint xedni_ = 0; xedni_ < (uint)size; xedni_++) { \
+			printf("%02x", (x)[xedni_ ^ 3]); \
+			if (xedni_ % 4 == 3) \
 				printf(" "); \
 		} \
 		printf("\n"); \
 	} while (0)
 
-/* requires int/uint */
-#define dump_stuff32_msg(msg, x, size) do {	  \
-		uint ii; \
+#define dump_stuff_be64_msg(msg, x, size) do {	  \
 		printf("%s : ", msg); \
-		for (ii = 0; ii < (uint)(size)/4; ii++) \
-			printf("%08x ", SWAP32((x)[ii])); \
-		printf("\n"); \
-	} while (0)
-
-/* requires long/ulong */
-#define dump_stuff64_msg(msg, x, size) do {	  \
-		uint ii; \
-		printf("%s : ", msg); \
-		for (ii = 0; ii < (uint)(size)/8; ii++) \
-			printf("%016lx ", SWAP64((x)[ii])); \
+		for (uint xedni_ = 0; xedni_ < (uint)size; xedni_++) { \
+			printf("%02x", (x)[xedni_ ^ 7]); \
+			if (xedni_ % 4 == 3) \
+				printf(" "); \
+		} \
 		printf("\n"); \
 	} while (0)
 
