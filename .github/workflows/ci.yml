@@ -120,6 +120,18 @@ jobs:
     - name: build check
       run: .ci/run-build-and-tests.sh --disable-openmp --disable-simd --without-openssl
 
+  gcc14-x86_64:
+    runs-on: ubuntu-24.04
+    env:
+      CC: gcc-14
+      TARGET: x86_64
+    steps:
+    - uses: actions/checkout@v4
+    - name: install dependencies
+      run: .ci/install-dependencies.sh
+    - name: build check
+      run: .ci/run-build-and-tests.sh
+
   gcc13-x86_64:
     runs-on: ubuntu-latest
     env:
@@ -184,6 +196,42 @@ jobs:
     runs-on: ubuntu-20.04
     env:
       CC: gcc-8
+      TARGET: x86_64
+    steps:
+    - uses: actions/checkout@v4
+    - name: install dependencies
+      run: .ci/install-dependencies.sh
+    - name: build check
+      run: .ci/run-build-and-tests.sh
+
+  clang18-x86_64:
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang-18
+      TARGET: x86_64
+    steps:
+    - uses: actions/checkout@v4
+    - name: install dependencies
+      run: .ci/install-dependencies.sh
+    - name: build check
+      run: .ci/run-build-and-tests.sh
+
+  clang17-x86_64:
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang-17
+      TARGET: x86_64
+    steps:
+    - uses: actions/checkout@v4
+    - name: install dependencies
+      run: .ci/install-dependencies.sh
+    - name: build check
+      run: .ci/run-build-and-tests.sh
+
+  clang16-x86_64:
+    runs-on: ubuntu-24.04
+    env:
+      CC: clang-16
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v4
