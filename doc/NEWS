@@ -328,6 +328,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Added support for SM3.  [SamuraiOcto; 2024]
 
+- Added support for Astra Linux crypt variants using GOST R 34.11-94 or GOST R
+  34.11-2012.  [magnum; 2024]
+
 - More optimal bitslice DES S-box expressions for NVIDIA GPUs and AVX-512.
   [Sovyn Y., Solar; 2024]
 
