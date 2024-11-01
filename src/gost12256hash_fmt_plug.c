@@ -9,6 +9,8 @@
  * modification, are permitted.
  */
 
+#if ARCH_LITTLE_ENDIAN
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_gost12256hash;
 #elif FMT_REGISTERS_H
@@ -442,3 +444,12 @@ struct fmt_main fmt_gost12256hash = {
 };
 
 #endif /* plugin stanza */
+#else
+#if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
+#ifdef __GNUC__
+#warning streebog256crypt CPU format requires little-endian, format disabled
+#elif _MSC_VER
+#pragma message(": warning streebog256crypt CPU format requires little-endian, format disabled:")
+#endif
+#endif
+#endif /* ARCH_LITTLE_ENDIAN */
