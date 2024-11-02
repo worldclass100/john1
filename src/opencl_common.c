@@ -296,8 +296,7 @@ static char *remove_spaces(char *str) {
 
 static char *opencl_driver_info(int sequential_id)
 {
-	static char buf[64 + MAX_OCLINFO_STRING_LEN];
-	char dname[MAX_OCLINFO_STRING_LEN], tmp[sizeof(buf)], set[64];
+	char dname[MAX_OCLINFO_STRING_LEN], tmp[64 + MAX_OCLINFO_STRING_LEN], set[64];
 	static char output[sizeof(tmp) + sizeof(dname)];
 	char *name, *recommendation = NULL;
 	int major = 0, minor = 0, conf_major = 0, conf_minor = 0, found;
@@ -308,7 +307,7 @@ static char *opencl_driver_info(int sequential_id)
 		sizeof(dname), dname, NULL), "clGetDeviceInfo for CL_DRIVER_VERSION");
 
 	opencl_driver_value(sequential_id, &major, &minor);
-	name = buf;
+	name = "";
 
 	if ((list = cfg_get_list("List.OpenCL:", "Drivers")))
 	if ((line = list->head))
@@ -345,14 +344,7 @@ static char *opencl_driver_info(int sequential_id)
 
 	if (gpu_amd(device_info[sequential_id]) &&
 	    get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_AMD) {
-
-		if (major < 1912)
-			snprintf(buf, sizeof(buf), "%s - Catalyst %s", dname, name);
-		else if (major < 2500)
-			snprintf(buf, sizeof(buf), "%s - Crimson %s", dname, name);
-		else
-			snprintf(buf, sizeof(buf), "%s - AMDGPU-Pro %s", dname, name);
-		snprintf(tmp, sizeof(tmp), "%s", buf);
+		snprintf(tmp, sizeof(tmp), "%s%s%s", dname, *name? " - ": "", name);
 	} else
 		snprintf(tmp, sizeof(tmp), "%s", dname);
 
