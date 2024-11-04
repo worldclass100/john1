@@ -15,6 +15,7 @@ extern struct fmt_main FORMAT_STRUCT;
 
 #include "pdf_common.h"
 #include "opencl_common.h"
+#include "opencl_helper_macros.h"
 #include "mask_ext.h"
 
 #define FORMAT_LABEL        "pdf-opencl"
@@ -62,73 +63,6 @@ static size_t get_task_max_work_group_size()
 }
 
 static void release_clobj(void);
-
-#define CL_RO    CL_MEM_READ_ONLY
-#define CL_WO    CL_MEM_WRITE_ONLY
-#define CL_RW    CL_MEM_READ_WRITE
-#define CL_ALLOC CL_MEM_ALLOC_HOST_PTR
-#define CL_COPY  CL_MEM_COPY_HOST_PTR
-
-#define CLCREATEBUFFER(var, flags, size)	  \
-	do { var = clCreateBuffer(context[gpu_id], flags, size, NULL, &ret_code); \
-		HANDLE_CLERROR(ret_code, "Error allocating GPU memory"); } while(0)
-
-#define CLCREATEBUFCOPY(var, flags, size, _hostbuf)	  \
-	do { var = clCreateBuffer(context[gpu_id], flags | CL_COPY, size, _hostbuf, &ret_code); \
-		HANDLE_CLERROR(ret_code, "Error copying host pointer for GPU"); } while(0)
-
-#define CLCREATEPINNED(var, flags, size)	  \
-	do { \
-		pinned_##var = clCreateBuffer(context[gpu_id], flags | CL_ALLOC, size, NULL, &ret_code); \
-		if (ret_code != CL_SUCCESS) { \
-			var = mem_alloc(size); \
-			if (var == NULL) \
-				HANDLE_CLERROR(ret_code, "Error allocating pinned buffer"); \
-		} else { \
-			var = clEnqueueMapBuffer(queue[gpu_id], pinned_##var, CL_TRUE, \
-			                         CL_MAP_READ | CL_MAP_WRITE, 0, size, 0, NULL, NULL, &ret_code); \
-			HANDLE_CLERROR(ret_code, "Error mapping buffer"); \
-			cl_##var = clCreateBuffer(context[gpu_id], flags, size, NULL, &ret_code); \
-			HANDLE_CLERROR(ret_code, "Error creating device buffer"); \
-		} \
-	} while(0)
-
-#define CLKERNELARG(kernel, id, arg)	  \
-	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), \
-	               "Error setting kernel argument")
-
-#define CLKRNARGLOC(kernel, id, arg)	  \
-	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), NULL), \
-	               "Error setting kernel argument for local memory")
-
-#define CLWRITE(gpu_var, wait, offset, size, host_var, event)	  \
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], gpu_var, wait, offset, size, host_var, 0, NULL, event), \
-	               "Failed writing buffer")
-
-#define CLWRITE_CRYPT(gpu_var, wait, offset, size, host_var, event)	  \
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], gpu_var, wait, offset, size, host_var, 0, NULL, event), \
-	              "Failed writing buffer")
-
-#define CLREAD_CRYPT(gpu_var, wait, offset, size, host_var, event)	  \
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], gpu_var, wait, offset, size, host_var, 0, NULL, event),\
-	              "failed reading buffer")
-
-#define RELEASEPINNED(var)	  \
-	do { \
-		if (pinned_##var) { \
-			HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_##var, var, 0, NULL, NULL), \
-			               "Error Unmapping buffer"); \
-			HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mapping"); var = NULL; \
-		} else \
-			MEM_FREE(var); \
-		HANDLE_CLERROR(clReleaseMemObject(pinned_##var), "Error releasing pinned buffer"); \
-		pinned_##var = NULL; \
-		HANDLE_CLERROR(clReleaseMemObject(cl_##var), "Error releasing buffer"); \
-		cl_##var = NULL; \
-	} while(0);
-
-#define RELEASEBUFFER(var)	\
-	do { HANDLE_CLERROR(clReleaseMemObject(var), "Release buffer"); var = NULL; } while(0)
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
@@ -272,10 +206,8 @@ static void reset(struct db_main *db)
 
 	/* create kernels to execute */
 	if (!crypt_kernel) {
-		for(i = 0; i < 4; i++) {
-			pdf_kernel[i] = clCreateKernel(program[gpu_id], kernel_name[i], &ret_code);
-			HANDLE_CLERROR(ret_code, kernel_name[i]);
-		}
+		for(i = 0; i < 4; i++)
+			CREATEKERNEL(pdf_kernel[i], kernel_name[i]);
 		crypt_kernel = pdf_kernel[0];
 	}
 
