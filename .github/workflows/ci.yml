@@ -96,10 +96,10 @@ jobs:
     - name: build check
       run: .ci/run-build-and-tests.sh --enable-asan --enable-simd=avx
 
-  gcc13-x86-without-openssl:
-    runs-on: ubuntu-latest
+  gcc14-x86-without-openssl:
+    runs-on: ubuntu-24.04
     env:
-      CC: gcc-13
+      CC: gcc-14
       TARGET: x86
     steps:
     - uses: actions/checkout@v4
@@ -108,10 +108,10 @@ jobs:
     - name: build check
       run: .ci/run-build-and-tests.sh --without-openssl
 
-  gcc13-x86-disable-all:
-    runs-on: ubuntu-latest
+  gcc14-x86-disable-all:
+    runs-on: ubuntu-24.04
     env:
-      CC: gcc-13
+      CC: gcc-14
       TARGET: x86
     steps:
     - uses: actions/checkout@v4
