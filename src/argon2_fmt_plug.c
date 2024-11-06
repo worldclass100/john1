@@ -65,6 +65,14 @@ john_register_one(&fmt_argon2);
 
 #define OMP_SCALE               8 // tuned w/ MKPC for core i7m
 
+#ifdef _OPENMP
+#define THREAD_NUMBER omp_get_thread_num()
+#define NUM_THREADS   omp_get_max_threads()
+#else
+#define THREAD_NUMBER 0
+#define NUM_THREADS   1
+#endif
+
 /*
  * Argon2 is a KDF, using a hash function built upon Blake2b (Blake2b_long,
  * variable length and capable of generating up to 2^32 bytes digests).
@@ -116,7 +124,14 @@ struct argon2_salt {
 	argon2_type type;
 };
 
+struct argon2_memory {
+	int used;
+	size_t size;
+	void *ptr;
+};
+
 static struct argon2_salt saved_salt;
+static struct argon2_memory *thread_mem;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
@@ -132,13 +147,19 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 	crypted = mem_calloc(self->params.max_keys_per_crypt, BINARY_SIZE);
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(int));
+	thread_mem = mem_calloc(NUM_THREADS, sizeof(struct argon2_memory));
 }
 
 static void done(void)
 {
+	int i;
+
 	MEM_FREE(saved_len);
 	MEM_FREE(crypted);
 	MEM_FREE(saved_key);
+	for (i = 0; i < NUM_THREADS; i++)
+		MEM_FREE(thread_mem[i].ptr);
+	MEM_FREE(thread_mem);
 }
 
 static void ctx_init(argon2_context *ctx)
@@ -245,6 +266,35 @@ static void set_salt(void *salt)
 	memcpy(&saved_salt, salt, sizeof(struct argon2_salt));
 }
 
+static int allocate(uint8_t **memory, size_t size)
+{
+	if (thread_mem[THREAD_NUMBER].used)
+		error_msg("%s() thread %u: Memory allocated twice\n", __FUNCTION__, THREAD_NUMBER);
+
+	if (thread_mem[THREAD_NUMBER].ptr == NULL) {
+		thread_mem[THREAD_NUMBER].ptr = mem_alloc(size);
+		thread_mem[THREAD_NUMBER].size = size;
+	} else if (thread_mem[THREAD_NUMBER].size < size) {
+		thread_mem[THREAD_NUMBER].ptr = mem_realloc(thread_mem[THREAD_NUMBER].ptr, size);
+		thread_mem[THREAD_NUMBER].size = size;
+	}
+
+	thread_mem[THREAD_NUMBER].used = 1;
+	*memory = thread_mem[THREAD_NUMBER].ptr;
+
+	return 1;
+}
+
+static void deallocate(uint8_t *memory, size_t size)
+{
+	if (!thread_mem[THREAD_NUMBER].used)
+		error_msg("%s(): thread %u: Freed memory not in use\n", __FUNCTION__, THREAD_NUMBER);
+	if (thread_mem[THREAD_NUMBER].size < size)
+		error_msg("%s(): thread %u: incorrect size %zu, was %zu\n", __FUNCTION__, THREAD_NUMBER, size, thread_mem[THREAD_NUMBER].size);
+
+	thread_mem[THREAD_NUMBER].used = 0;
+}
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int i;
@@ -253,14 +303,25 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (i = 0; i < count; i++)
-		argon2_hash(saved_salt.t_cost, saved_salt.m_cost, saved_salt.lanes,
-		            saved_key[i], saved_len[i],
-		            saved_salt.salt, saved_salt.salt_length,
-		            crypted[i], saved_salt.hash_size,
-		            NULL, 0,
-		            saved_salt.type, ARGON2_VERSION_NUMBER);
-
+	for (i = 0; i < count; i++) {
+		argon2_context context = {
+			.out = (uint8_t*)crypted[i],
+			.outlen = saved_salt.hash_size,
+			.pwd = (uint8_t*)saved_key[i],
+			.pwdlen = saved_len[i],
+			.salt = (uint8_t*)saved_salt.salt,
+			.saltlen = saved_salt.salt_length,
+			.t_cost = saved_salt.t_cost,
+			.m_cost = saved_salt.m_cost,
+			.lanes = saved_salt.lanes,
+			.threads = saved_salt.lanes,
+			.allocate_cbk = &allocate,
+			.free_cbk = &deallocate,
+			.flags = ARGON2_DEFAULT_FLAGS,
+			.version = ARGON2_VERSION_NUMBER
+		};
+		argon2_ctx(&context, saved_salt.type);
+	}
 	return count;
 }
 
