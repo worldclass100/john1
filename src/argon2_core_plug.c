@@ -258,8 +258,10 @@ uint32_t argon2_index_alpha(const argon2_instance_t *instance,
     }
 
     /* 1.2.6. Computing absolute position */
-    absolute_position = (start_position + relative_position) %
-                        instance->lane_length; /* absolute position */
+    absolute_position = start_position + relative_position; /* absolute position */
+	if (absolute_position >= instance->lane_length) {
+		absolute_position -= instance->lane_length;
+	}
     return absolute_position;
 }
 
