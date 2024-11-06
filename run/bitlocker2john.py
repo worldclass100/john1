@@ -1,7 +1,10 @@
-# Construct a hash for use with hashcat mode 22100
+#!/usr/bin/python3
+
 # Usage: python3 bitlocker2john.py <bitlocker_image> -o <bitlocker_partition_offset>
-# Hashcat supports modes $bitlocker$0$ and $bitlocker$1$ and therefore this script will output hashes that relate to a VMK protected by a user password only.
-# It is not possible to create a hash for VMKs protected by a TPM. It is infeasible to attempt to crack a hash of the recovery password.
+# Supported modes: 
+# - $bitlocker$0$ and $bitlocker$1$ = VMK protected by a user password
+# - $bitlocker$2$ and $bitlocker$3$ = VMK protected by a recovery key
+# It is not possible to create a hash for VMKs protected by a TPM.
 # Refs: https://github.com/libyal/libbde/blob/main/documentation/BitLocker%20Drive%20Encryption%20(BDE)%20format.asciidoc#encryption_methods
 
 import argparse
@@ -13,9 +16,9 @@ PROTECTION_TYPES = {0x0: 'VMK protected with clear key', 0x100: 'VMK protected w
 FVE_ENTRY_TYPES = {0x0: 'None', 0x2: 'VMK', 0x3: 'FVEK', 0x4: 'Validation', 0x6: 'Startup key', 0x7: 'Computer description', 0xb: 'FVEK backup', 0xf: 'Volume header block'}
 FVE_VALUE_TYPES = {0x0: 'Erased', 0x1: 'Key', 0x2: 'UTF-16 string', 0x3: 'Stretch key', 0x4: 'Use key', 0x5: 'AES-CCM encrypted key', 0x6: 'TPM encoded key', 0x7: 'Validation', 0x8: 'VMK', 0x9: 'External key', 0xa: 'Update', 0xb: 'Error', 0xf: 'Offset and size'}
 ITERATION_COUNT = 0x100000
-BITLOCKER_PASSWORD_HASH_VERSIONS = [0,1] # 0,1 both supported on hashcat
+BITLOCKER_PASSWORD_HASH_VERSIONS = [0,1]
 BITLOCKER_RECOVERY_HASH_VERSIONS = [2,3]
-HASHCAT_HASH = []
+HASHES = []
 
 def guid_to_hex(guid):
     guid_parts = guid.split('-')
@@ -77,8 +80,8 @@ def parse_stretch_key(data):
 
     return salt, nonce, mac, enc_data
 
-def generate_hashcat_hash(salt, nonce, mac, enc_data, protection_type):
-    print("\nFound hashcat hash!")
+def generate_hash(salt, nonce, mac, enc_data, protection_type):
+    print("\nFound hash!")
     if protection_type == 0x2000:
         versions = BITLOCKER_PASSWORD_HASH_VERSIONS
     if protection_type == 0x800:
@@ -86,7 +89,7 @@ def generate_hashcat_hash(salt, nonce, mac, enc_data, protection_type):
     for version in versions:
         generated_hash = f"$bitlocker${version}${len(salt)}${salt.hex()}${ITERATION_COUNT}${len(nonce)}${nonce.hex()}${len(mac + enc_data)}${(mac + enc_data).hex()}"
         print(generated_hash)
-        HASHCAT_HASH.append(generated_hash)
+        HASHES.append(generated_hash)
 
 def parse_aes_ccm_encrypted_key(data):
     print("Parsing AES CCM key...")
@@ -122,7 +125,7 @@ def parse_VMK(VMK_data):
                 salt, strech_nonce, stretch_mac, stretch_enc_data = parse_stretch_key(data)
             if value_type == 0x5:
                 nonce, mac, enc_data = parse_aes_ccm_encrypted_key(data)
-                generate_hashcat_hash(salt, nonce, mac, enc_data, protection_type)
+                generate_hash(salt, nonce, mac, enc_data, protection_type)
 
     return
 
@@ -223,11 +226,11 @@ def main():
         
             break
 
-    if HASHCAT_HASH == []:
+    if HASHES == []:
         print("\nNo hashes associated with the user password or recovery password found. Exiting...")
     else:
-        print("\nThe following hashcat hashes were found:")
-        for bitlocker_hash in HASHCAT_HASH:
+        print("\nThe following hashes were found:")
+        for bitlocker_hash in HASHES:
             print(bitlocker_hash)
 
     return
