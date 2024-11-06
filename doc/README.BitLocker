@@ -5,9 +5,11 @@ Step 1: Extract the hash
 ------------------------
 
 In order to use the BitLocker-OpenCL format, you must produce a well-formatted
-hash from your BitLocker encrypted image. Use the bitlocker2john tool to
-extract hashes from password protected BitLocker encrypted volumes. It returns
-four output hashes with different prefixes:
+hash from your BitLocker encrypted image. Use the tool run/bitlocker2john.py to
+extract hashes from password protected BitLocker encrypted volumes.
+Usage: python3 bitlocker2john.py <bitlocker_image> [-o <bitlocker_partition_offset>]
+
+It returns four output hashes with different prefixes:
 
 * If the device was encrypted using the User Password authentication method,
   bitlocker2john prints these two hashes:
@@ -19,6 +21,40 @@ four output hashes with different prefixes:
   * $bitlocker$3$... : it starts the Recovery Password attack mode with MAC verification (slower execution, no false positives)
 
 Hash extraction example,
+
+$ python3 bitlocker2john.py bitlocker_image -o 4194304
+
+[+] BitLocker signature found: -FVE-FS-
+[+] Identified volume GUID: 4967D63B-2E29-4AD8-8399-F6A339E3D001 = BitLocker
+[+] FVE metadata info found at offsets ['0x2500000', '0x42500000', '0x82500000']
+
+Parsing FVE block...
+
+Parsing FVE metadata header...
+Metadata size: 820
+Volume GUID: F23E2E52-12F0-4066-94B6-F91C9A1A1D91
+Encryption method: 0x80028002
+
+Parsing FVE metadata entry...
+Entry size: 68
+Entry type: 0x7 = Computer description
+Value type: 0x2 = UTF-16 string
+
+Parsing description...
+Info: DESKTOP-J5HJVN9 E: 12/08/2022
+
+...
+
+The following hashes were found:
+$bitlocker$0$16$4a67bc123abedc43d60b3ece78ec6d1e$1048558$12$a015f77b68aed80103000000$60$2dbacf4710d3d42aa4f7baeedff85d72fc892f8f3457271901c0d2eccc3de890f081b3335740a5b5f1473892569ec0455d1aa2fd0075ac073a5f7b2a
+$bitlocker$1$16$4a67bc123abedc43d60b3ece78ec6d1e$1048558$12$a015f77b68aed80103000000$60$2dbacf4710d3d42aa4f7baeedff85d72fc892f8f3457271901c0d2eccc3de890f081b3335740a5b5f1473892569ec0455d1aa2fd0075ac073a5f7b2a
+$bitlocker$2$16$4b10ca85ab17a7419990d92f75abc848$1048558$12$a015f77b68aed80106000000$60$11e39cfd4dc9f647cef46b843347a3677c0706d3653f3477d44c72c8e36e8e02e010744dc384a419ff487a0190b42da0a29229d57a0bc3c6a7193f7
+$bitlocker$3$16$4b10ca85ab17a7419990d92f75abc848$1048558$12$a015f77b68aed80106000000$60$11e39cfd4dc9f647cef46b843347a3677c0706d3653f3477d44c72c8e36e8e02e010744dc384a419ff487a0190b42da0a29229d57a0bc3c6a7193f7
+
+
+Alternatively, run the compiled program bitlocker2john, which is normally
+built from source along with the rest of John the Ripper and is included
+pre-built in John the Ripper binary releases.
 
 $ ../run/bitlocker2john minimalistic.raw  # operate on a disk image
 Signature found at 0x00010003
