@@ -62,9 +62,9 @@ john_register_one(&fmt_argon2);
 #define SALT_ALIGN              sizeof(uint32_t)
 
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      2
+#define MAX_KEYS_PER_CRYPT      1
 
-#define OMP_SCALE               8 // tuned w/ MKPC for core i7m
+#define OMP_SCALE               1
 
 #ifdef _OPENMP
 #define THREAD_NUMBER omp_get_thread_num()
