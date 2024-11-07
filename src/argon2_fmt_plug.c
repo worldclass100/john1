@@ -25,6 +25,7 @@ john_register_one(&fmt_argon2);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
+#include "memory.h"
 #include "argon2.h"
 #include "argon2_encoding.h"
 
@@ -126,8 +127,7 @@ struct argon2_salt {
 
 struct argon2_memory {
 	int used;
-	size_t size;
-	void *ptr;
+	region_t region;
 };
 
 static struct argon2_salt saved_salt;
@@ -142,12 +142,17 @@ static void *get_salt(char *ciphertext);
 
 static void init(struct fmt_main *self)
 {
+	int i;
+
 	omp_autotune(self, OMP_SCALE);
 
 	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 	crypted = mem_calloc(self->params.max_keys_per_crypt, BINARY_SIZE);
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(int));
 	thread_mem = mem_calloc(NUM_THREADS, sizeof(struct argon2_memory));
+
+	for (i = 0; i < NUM_THREADS; i++)
+		init_region_t(&thread_mem[i].region);
 }
 
 static void done(void)
@@ -158,7 +163,7 @@ static void done(void)
 	MEM_FREE(crypted);
 	MEM_FREE(saved_key);
 	for (i = 0; i < NUM_THREADS; i++)
-		MEM_FREE(thread_mem[i].ptr);
+		free_region_t(&thread_mem[i].region);
 	MEM_FREE(thread_mem);
 }
 
@@ -271,16 +276,17 @@ static int allocate(uint8_t **memory, size_t size)
 	if (thread_mem[THREAD_NUMBER].used)
 		error_msg("%s() thread %u: Memory allocated twice\n", __FUNCTION__, THREAD_NUMBER);
 
-	if (thread_mem[THREAD_NUMBER].ptr == NULL) {
-		thread_mem[THREAD_NUMBER].ptr = mem_alloc(size);
-		thread_mem[THREAD_NUMBER].size = size;
-	} else if (thread_mem[THREAD_NUMBER].size < size) {
-		thread_mem[THREAD_NUMBER].ptr = mem_realloc(thread_mem[THREAD_NUMBER].ptr, size);
-		thread_mem[THREAD_NUMBER].size = size;
+	if (thread_mem[THREAD_NUMBER].region.aligned_size == 0) {
+		alloc_region_t(&thread_mem[THREAD_NUMBER].region, size);
+		thread_mem[THREAD_NUMBER].region.aligned_size = size;
+	} else if (thread_mem[THREAD_NUMBER].region.aligned_size < size) {
+		free_region_t(&thread_mem[THREAD_NUMBER].region);
+		alloc_region_t(&thread_mem[THREAD_NUMBER].region, size);
+		thread_mem[THREAD_NUMBER].region.aligned_size = size;
 	}
 
 	thread_mem[THREAD_NUMBER].used = 1;
-	*memory = thread_mem[THREAD_NUMBER].ptr;
+	*memory = thread_mem[THREAD_NUMBER].region.aligned;
 
 	return 1;
 }
@@ -289,8 +295,8 @@ static void deallocate(uint8_t *memory, size_t size)
 {
 	if (!thread_mem[THREAD_NUMBER].used)
 		error_msg("%s(): thread %u: Freed memory not in use\n", __FUNCTION__, THREAD_NUMBER);
-	if (thread_mem[THREAD_NUMBER].size < size)
-		error_msg("%s(): thread %u: incorrect size %zu, was %zu\n", __FUNCTION__, THREAD_NUMBER, size, thread_mem[THREAD_NUMBER].size);
+	if (thread_mem[THREAD_NUMBER].region.aligned_size < size)
+		error_msg("%s(): thread %u: incorrect size %zu, was %zu\n", __FUNCTION__, THREAD_NUMBER, size, thread_mem[THREAD_NUMBER].region.aligned_size);
 
 	thread_mem[THREAD_NUMBER].used = 0;
 }
