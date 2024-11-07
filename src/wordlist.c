@@ -1037,16 +1037,6 @@ REDO_AFTER_LMLOOP:
 		rules_init(db, length);
 		rule_count = rules_count(&ctx, -1);
 
-		if (do_lmloop || !db->plaintexts->head) {
-			if (rules_stacked_after)
-				log_event("- Total %u (%d x %u) preprocessed word mangling rules",
-				          rule_count * crk_stacked_rule_count,
-				          rule_count, crk_stacked_rule_count);
-			else
-				log_event("- %d preprocessed word mangling rules", rule_count);
-		}
-
-
 		apply = rules_apply;
 	} else {
 		rule_ctx = NULL;
@@ -1075,6 +1065,15 @@ REDO_AFTER_LMLOOP:
 		rec_init(db, save_state);
 
 		crk_init(db, fix_state, NULL);
+	}
+
+	if (rules && (do_lmloop || !db->plaintexts->head)) {
+		if (rules_stacked_after)
+			log_event("- Total %u (%d x %u) preprocessed word mangling rules",
+			          rule_count * crk_stacked_rule_count,
+			          rule_count, crk_stacked_rule_count);
+		else
+			log_event("- %d preprocessed word mangling rules", rule_count);
 	}
 
 	if (dupeCheck || rules) {
