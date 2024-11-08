@@ -101,7 +101,6 @@ void argon2_fill_segment(const argon2_instance_t *instance,
     uint32_t prev_offset, curr_offset;
     uint32_t starting_index;
     uint32_t i;
-    uint32_t i_address;
     uint32_t lanes_reciprocal = 0;
     uint32_t lanes = instance->lanes;
     int data_independent_addressing;
@@ -155,20 +154,15 @@ void argon2_fill_segment(const argon2_instance_t *instance,
         lanes_reciprocal = (uint32_t) (UINT64_C(0x100000000) / lanes);
     }
 
-    i_address = starting_index;
     for (i = starting_index; i < instance->segment_length;
          ++i, ++curr_offset) {
         /* 1.2 Computing the index of the reference block */
         /* 1.2.1 Taking pseudo-random value from the previous block */
         if (data_independent_addressing) {
-            if (i_address == 0) {
+            if (i % ARGON2_ADDRESSES_IN_BLOCK == 0) {
                 next_addresses(&address_block, &input_block, &zero_block);
             }
-            pseudo_rand = address_block.v[i_address];
-            i_address++;
-            if (i_address >= ARGON2_ADDRESSES_IN_BLOCK) {
-                i_address = 0;
-            }
+            pseudo_rand = address_block.v[i % ARGON2_ADDRESSES_IN_BLOCK];
         } else {
             pseudo_rand = instance->memory[prev_offset].v[0];
         }
