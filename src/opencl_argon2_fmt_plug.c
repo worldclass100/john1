@@ -227,6 +227,7 @@ static int run_kernel_on_gpu(uint32_t count)
 			HANDLE_CLERROR(clSetKernelArg(kernels[selected_type], 5, sizeof(slice), &slice), "Error setting kernel argument");
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], kernels[selected_type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Run loop kernel");
 			HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush");
+			opencl_process_event();
 		}
 	} else { // Argon2_d || Argon2_i
 		// Find the autotune params
@@ -255,6 +256,7 @@ static int run_kernel_on_gpu(uint32_t count)
 			HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 5, sizeof(slice), &slice), "Error setting kernel argument");
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], kernels[argon2_type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Run loop kernel");
 			HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush");
+			opencl_process_event();
 		}
 	}
 
