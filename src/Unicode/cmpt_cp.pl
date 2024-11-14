@@ -1,4 +1,13 @@
 #!/usr/bin/env perl
+###############################################################################
+# code page data builder, (c) magnum & JimF 2011-2024. A tool to build codepage
+# encoding data needed for John the Ripper code page conversions.
+# The data output from this file is made to be placed into src/encoding_data.h.
+# UnicodeData.txt is an official Unicode definition file and can be found at
+# ftp://ftp.unicode.org/Public/UNIDATA/UnicodeData.txt
+# USAGE:  cmpt_cp.pl [-v] CODEPAGE
+# cmpt_cp.pl run without any arguments will show a list of possible code pages.
+###############################################################################
 
 use warnings;
 use strict;
@@ -6,19 +15,6 @@ use Encode;
 use Switch;
 use Unicode::Normalize;
 use utf8;  # This source file MUST be stored UTF-8 encoded
-
-###############################################################################
-# code page data builder, by magnum / JimF.   v1.2
-# August 8, added parsing of ./UnicodeData.txt for building more macros
-# Coded July-Aug 2011, as a tool to build codepage encoding data needed
-# for John the Ripper code page conversions.  The data output from this file
-# is made to be directly placed into the ./src/encoding_data.h file in john's
-# source tree.
-# UnicodeData.txt is an official Unicode definition file and can be found at
-# ftp://ftp.unicode.org/Public/UNIDATA/UnicodeData.txt
-# USAGE:  cmpt_cp.pl [-v] CODEPAGE
-# cmpt_cp.pl run without any arguments will show a list of possible code pages.
-###############################################################################
 
 # This should set our output to your terminal settings
 use open ':locale';
@@ -97,8 +93,8 @@ if ($verbose) {
 	print "\n// ", $hs, "\n";
 }
 print "\n// here is the $encu to Unicode conversion for $encu characters from 0x80 to 0xFF\n";
-print "static const UTF16 ".$encu."_to_unicode_high128[] = {\n";
-print $to_unicode_high128 . " };\n";
+print "EXTATIC const UTF16 ".$encu."_to_unicode_high128[]\n#if JTR_UNICODE_C\n= {\n";
+print $to_unicode_high128 . " }\n#endif\n;\n";
 
 #################################
 # Now build upcase/downcase data.

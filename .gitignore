@@ -73,7 +73,6 @@ run/wpapcap2john
 run/zip2john
 
 src/.gdbinit
-src/Unicode
 src/aes/aes.a
 src/arch.h
 src/all_tests.lst
