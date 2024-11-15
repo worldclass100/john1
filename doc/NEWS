@@ -347,6 +347,13 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   support as well, and keepass-argon2-opencl is made a separate format.
   [magnum; 2024]
 
+- Upgraded Unicode stuff from version 13.0.0 to 16.0.0.  This affects the
+  external modes Dumb16, Dumb32, Repeats16 and Repeats32.  It also affects
+  the Easter egg option "--subsets=full-unicode" which BTW supersedes the
+  external modes with far better performance.  This time some definitions of
+  character classes got (very minor) changes - this can affect resuming old
+  jobs  [magnum; 2024]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
