@@ -88,6 +88,10 @@
 #include "version.h"
 #include "listconf.h" /* must be included after version.h and misc.h */
 
+#ifdef AESNI_IN_USE
+#include "aes.h"
+#endif
+
 #ifdef NO_JOHN_BLD
 #define JOHN_BLD "unk-build-type"
 #else
@@ -348,6 +352,17 @@ static void listconf_list_build_info(void)
 
 	printf("Terminal locale string: %s\n", john_terminal_locale);
 	printf("Parsed terminal locale: %s\n", cp_id2name(options.terminal_enc));
+
+#ifdef AESNI_IN_USE
+	if (using_aes_asm())
+		printf("AES-NI: available\n");
+	else
+		printf("AES-NI: not supported by CPU\n");
+#elif defined(__i386__) || defined(__x86_64__)
+	printf("AES-NI: not built\n");
+#else
+	printf("AES-NI: not applicable\n");
+#endif
 
 #ifdef __CYGWIN__
 	{

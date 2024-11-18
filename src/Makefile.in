@@ -71,6 +71,20 @@ LDFLAGS = -g @LDFLAGS@ $(LIBS) @HAVE_MPI@
 OPT_NORMAL = @OPT_NORMAL_FLAGS@
 OPT_INLINE = @OPT_INLINE_FLAGS@
 #
+AES_OK := $(shell expr `$(CC) -dumpversion | cut -d '.' -f 1` \>= 4)
+YASM = @YASM@
+USE_AESNI = @AESNI_OS@
+AESNI_ARCH=@AESNI_ARCH@
+
+ifeq "$(AES_OK)" "1"
+	ifneq "$(YASM)" ""
+		ifdef USE_AESNI
+			ifdef AESNI_ARCH
+				AESNI_DEC = -DAESNI_IN_USE
+			endif
+		endif
+	endif
+endif
 
 PLUGFORMATS_OBJS = @PLUGFORMATS_OBJS@
 
@@ -746,7 +760,7 @@ unrarppm.o:	unrarppm.c arch.h aes.h autoconfig.h aes/aes_func.h unrar.h unrarhlp
 	$(CC) -DAC_BUILT $(CFLAGS) $< -o $@
 
 .c.o:
-	$(CC) $(CFLAGS) $(OPT_NORMAL) $< -o $@
+	$(CC) $(CFLAGS) $(OPT_NORMAL) $(AESNI_DEC) $< -o $@
 
 .S.o:
 	$(AS) $(ASFLAGS) $*.S

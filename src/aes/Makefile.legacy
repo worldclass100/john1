@@ -1,5 +1,5 @@
 RM = rm -f
-GCCV44 := $(shell expr `$(CC) -dumpversion 2>/dev/null` \>= 4.4 2>/dev/null)
+GCCV44 := $(shell expr `$(CC) -dumpversion 2>/dev/null | cut -d '.' -f 1` \>= 4)
 YASM := $(shell yasm -f $(YASM_FORMAT) 2>&1 | grep "No input files")
 UNAME := $(shell $(CC) -dumpmachine 2>/dev/null)
 
