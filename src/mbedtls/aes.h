@@ -27,10 +27,10 @@
 
 #ifndef MBEDTLS_AES_H
 #define MBEDTLS_AES_H
-#include "mbedtls/private_access.h"
+#include "private_access.h"
 
-#include "mbedtls/build_info.h"
-#include "mbedtls/platform_util.h"
+#include "build_info.h"
+#include "platform_util.h"
 
 #include <stddef.h>
 #include <stdint.h>

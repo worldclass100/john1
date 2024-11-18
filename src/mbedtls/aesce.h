@@ -14,10 +14,10 @@
 #ifndef MBEDTLS_AESCE_H
 #define MBEDTLS_AESCE_H
 
-#include "mbedtls/build_info.h"
+#include "build_info.h"
 #include "common.h"
 
-#include "mbedtls/aes.h"
+#include "aes.h"
 
 
 #if defined(MBEDTLS_AESCE_C) \

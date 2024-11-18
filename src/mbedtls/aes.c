@@ -17,10 +17,10 @@
 
 #include <string.h>
 
-#include "mbedtls/aes.h"
-#include "mbedtls/platform.h"
-#include "mbedtls/platform_util.h"
-#include "mbedtls/error.h"
+#include "aes.h"
+#include "platform.h"
+#include "platform_util.h"
+#include "error.h"
 
 #if defined(MBEDTLS_AES_USE_HARDWARE_ONLY)
 #if !((defined(MBEDTLS_ARCH_IS_ARMV8_A) && defined(MBEDTLS_AESCE_C)) || \
@@ -52,7 +52,7 @@
 #include "aesce.h"
 #endif
 
-#include "mbedtls/platform.h"
+#include "platform.h"
 #include "ctr.h"
 
 /*
@@ -1076,7 +1076,7 @@ int mbedtls_aes_crypt_cbc(mbedtls_aes_context *ctx,
                           const unsigned char *input,
                           unsigned char *output)
 {
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    int ret = 0;
     unsigned char temp[16];
 
     if (mode != MBEDTLS_AES_ENCRYPT && mode != MBEDTLS_AES_DECRYPT) {
@@ -1089,7 +1089,13 @@ int mbedtls_aes_crypt_cbc(mbedtls_aes_context *ctx,
     }
 
     if (length % 16) {
-        return MBEDTLS_ERR_AES_INVALID_INPUT_LENGTH;
+	    ret = MBEDTLS_ERR_AES_INVALID_INPUT_LENGTH;
+	    /*
+	     * For bug compatibility, chug along and return the error afterwards.
+	     * Our old code (and eg. OpenSSL) would read and write past buffers
+	     * just like we do here.  - magnum
+	     */
+	    length = (length + 15) / 16 * 16;
     }
 
 #if defined(MBEDTLS_VIA_PADLOCK_HAVE_CODE)
@@ -1281,7 +1287,7 @@ int mbedtls_aes_crypt_xts(mbedtls_aes_xts_context *ctx,
         mbedtls_xor(prev_output, tmp, t, 16);
     }
 
-    return 0;
+    return ret;
 }
 #endif /* MBEDTLS_CIPHER_MODE_XTS */
 

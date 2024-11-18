@@ -110,7 +110,7 @@
 
 /* X.509, TLS and non-PSA crypto configuration */
 #if !defined(MBEDTLS_CONFIG_FILE)
-#include "mbedtls/mbedtls_config.h"
+#include "mbedtls_config.h"
 #else
 #include MBEDTLS_CONFIG_FILE
 #endif
@@ -173,14 +173,14 @@
 #if defined(MBEDTLS_PSA_CRYPTO_CONFIG) /* PSA_WANT_xxx influences MBEDTLS_xxx */ || \
     defined(MBEDTLS_PSA_CRYPTO_C) /* MBEDTLS_xxx influences PSA_WANT_xxx */ || \
     defined(MBEDTLS_PSA_CRYPTO_CLIENT) /* The same as the previous, but with separation only */
-#include "mbedtls/config_psa.h"
+#include "config_psa.h"
 #endif
 
-#include "mbedtls/config_adjust_legacy_crypto.h"
+//#include "config_adjust_legacy_crypto.h"
 
-#include "mbedtls/config_adjust_x509.h"
+//#include "config_adjust_x509.h"
 
-#include "mbedtls/config_adjust_ssl.h"
+//#include "config_adjust_ssl.h"
 
 /* Indicate that all configuration symbols are set,
  * even the ones that are calculated programmatically.
@@ -189,6 +189,6 @@
  */
 #define MBEDTLS_CONFIG_IS_FINALIZED
 
-#include "mbedtls/check_config.h"
+//#include "check_config.h"
 
 #endif /* MBEDTLS_BUILD_INFO_H */

@@ -152,7 +152,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += batch_size) {
 		unsigned char master[MAX_KEYS_PER_CRYPT][32];
-		unsigned char output[24];
+		unsigned char output[32];
 		unsigned char *iv_in;
 		unsigned char iv_out[16];
 		int size, i;

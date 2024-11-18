@@ -25,12 +25,12 @@
  */
 #ifndef MBEDTLS_PLATFORM_H
 #define MBEDTLS_PLATFORM_H
-#include "mbedtls/private_access.h"
+#include "private_access.h"
 
-#include "mbedtls/build_info.h"
+#include "build_info.h"
 
 #if defined(MBEDTLS_HAVE_TIME)
-#include "mbedtls/platform_time.h"
+#include "platform_time.h"
 #endif
 
 #ifdef __cplusplus

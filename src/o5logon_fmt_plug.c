@@ -87,12 +87,8 @@ static struct custom_salt {
 	int pw_len;                              /* AUTH_PASSWORD length (blocks) */
 } *cur_salt;
 
-static aes_fptr_cbc aesDec, aesEnc;
-
 static void init(struct fmt_main *self)
 {
-	static char Buf[128];
-
 	omp_autotune(self, OMP_SCALE);
 
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -101,14 +97,6 @@ static void init(struct fmt_main *self)
 	                       sizeof(*saved_len));
 	cracked = mem_calloc(self->params.max_keys_per_crypt,
 	                     sizeof(*cracked));
-
-	if (!*aesDec) {
-		aesDec = get_AES_dec192_CBC();
-		aesEnc = get_AES_enc192_CBC();
-		sprintf(Buf, "%s %s", self->params.algorithm_name,
-		        get_AES_type_string());
-		self->params.algorithm_name=Buf;
-	}
 }
 
 static void done(void)
@@ -214,6 +202,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++) {
 		unsigned char key[24];
 		unsigned char iv[16];
+		AES_KEY akey;
 		SHA_CTX ctx;
 
 		SHA1_Init(&ctx);
@@ -235,10 +224,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			if (cur_salt->pw_len == blen) {
 				memset(iv, 0, 16);
-				aesDec(cur_salt->ct, s_secret, key, 3, iv);
+				AES_set_decrypt_key(key, 192, &akey);
+				AES_cbc_encrypt(cur_salt->ct, s_secret, 48, &akey, iv, AES_DECRYPT);
 
 				memset(iv, 0, 16);
-				aesDec(cur_salt->csk, c_secret, key, 3, iv);
+				AES_set_decrypt_key(key, 192, &akey);
+				AES_cbc_encrypt(cur_salt->csk, c_secret, 48, &akey, iv, AES_DECRYPT);
 
 				for (i = 0; i < 24; i++)
 					combined_sk[i] = s_secret[16 + i] ^ c_secret[16 + i];
@@ -251,8 +242,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				MD5_Final(final_key + 16, &ctx);
 
 				memset(iv, 0, 16);
-				aesDec(cur_salt->pw, password, final_key,
-				       cur_salt->pw_len + 1, iv);
+				AES_set_decrypt_key(final_key, 192, &akey);
+				AES_cbc_encrypt(cur_salt->pw, password, (cur_salt->pw_len + 1) * 16, &akey, iv, AES_DECRYPT);
 
 				if (!memcmp(dec_pw, saved_key[index], saved_len[index]))
 				{
@@ -281,7 +272,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			unsigned char pt[16];
 
 			memcpy(iv, cur_salt->ct + 16, 16);
-			aesDec(cur_salt->ct + 32, pt, key, 1, iv);
+			AES_set_decrypt_key(key, 192, &akey);
+			AES_cbc_encrypt(cur_salt->ct + 32, pt, 16, &akey, iv, AES_DECRYPT);
 
 			if (!memcmp(pt + 8, "\x08\x08\x08\x08\x08\x08\x08\x08", 8))
 			{

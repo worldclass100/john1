@@ -27,7 +27,7 @@
 #include <openssl/bn.h>
 #include <openssl/dsa.h>
 #include <openssl/des.h>
-#include <openssl/aes.h> /* AES_cfb128_encrypt() */
+#include "aes.h"
 
 #include "twofish.h"
 #include "idea-JtR.h"
@@ -1199,6 +1199,7 @@ int gpg_common_check(unsigned char *keydata, int ks)
 	unsigned char ivec[32];
 	unsigned char *out;
 	int tmp = 0;
+	size_t tmpz = 0;
 	uint32_t num_bits = 0;
 	int checksumOk;
 	int i;
@@ -1237,7 +1238,7 @@ int gpg_common_check(unsigned char *keydata, int ks)
 		case CIPHER_AES256: {
 					    AES_KEY ck;
 					    AES_set_encrypt_key(keydata, ks * 8, &ck);
-					    AES_cfb128_encrypt(gpg_common_cur_salt->data, out, AES_BLOCK_SIZE, &ck, ivec, &tmp, AES_DECRYPT);
+					    AES_cfb128_encrypt(gpg_common_cur_salt->data, out, AES_BLOCK_SIZE, &ck, ivec, &tmpz, AES_DECRYPT);
 				    }
 				    break;
 		case CIPHER_3DES: {
@@ -1326,12 +1327,12 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					    AES_set_encrypt_key(keydata, ks * 8, &ck);
 					    block_size = 16;
 					    if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
-						    AES_cfb128_encrypt(gpg_common_cur_salt->data, out, block_size + 2, &ck, ivec, &tmp, AES_DECRYPT);
-						    tmp = 0;
+						    AES_cfb128_encrypt(gpg_common_cur_salt->data, out, block_size + 2, &ck, ivec, &tmpz, AES_DECRYPT);
+						    tmpz = 0;
 						    memcpy(ivec, gpg_common_cur_salt->data + 2, block_size);
-						    AES_cfb128_encrypt(gpg_common_cur_salt->data + block_size + 2, out + block_size + 2, gpg_common_cur_salt->datalen - block_size - 2, &ck, ivec, &tmp, AES_DECRYPT);
+						    AES_cfb128_encrypt(gpg_common_cur_salt->data + block_size + 2, out + block_size + 2, gpg_common_cur_salt->datalen - block_size - 2, &ck, ivec, &tmpz, AES_DECRYPT);
 					    } else {
-						    AES_cfb128_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmp, AES_DECRYPT);
+						    AES_cfb128_encrypt(gpg_common_cur_salt->data, out, gpg_common_cur_salt->datalen, &ck, ivec, &tmpz, AES_DECRYPT);
 					    }
 				    }
 				    break;

@@ -47,7 +47,6 @@ m4_include([m4/ax_ztex.m4])
 
 dnl Define precious variables. They get included in --help and need no AC_SUBST
 AC_ARG_VAR([CFLAGS_EXTRA], [additional CFLAGS for -Woptions and other things, not used during ./configure but put in resulting Makefile])
-AC_ARG_VAR([YASM], [full pathname of yasm (for optional AES-NI support)])
 AC_ARG_VAR([AS], [full pathname of assembler to use])
 AC_ARG_VAR([AR], [full pathname of "ar" to use])
 AC_ARG_VAR([LD], [full pathname of linker to use])
@@ -923,60 +922,6 @@ AS_IF([test "$CPU_BIT_STR" -eq 64],
    [AC_DEFINE([ARCH_BITS_LOG], 5, ["Native CPU width, log"])])
 AC_DEFINE_UNQUOTED([ARCH_BITS_STR], ["$CPU_BIT_STR"], ["Native CPU width, string"])
 
-if test "$CPU_BIT_STR" = "32"; then
-   aesni_arch="86"
-else
-   aesni_arch="64"
-fi
-AC_SUBST([AESNI_ARCH],["$aesni_arch"])
-
-aesni_os=""
-aesni_options="DISABLED"
-
-if test "x$ax_intel_x32" = xyes; then
-   aesni_os=linux aesni_options="-g dwarf2 -f elfx32"
-else
-   case "${host}_${CFLAGS}" in
-      *_*-mno-mmx*) ;;
-      *_*-mno-sse2*) ;;
-      x86_64*darwin*)
-         aesni_os=darwin
-         aesni_options="--prefix=_ -f macho${CPU_BIT_STR}"
-      ;;
-      i?86*darwin*)
-         aesni_os=darwin
-         aesni_options="-f macho${CPU_BIT_STR}"
-      ;;
-      *86*linux*)
-         aesni_os=linux
-         aesni_options="-g dwarf2 -f elf${CPU_BIT_STR}"
-      ;;
-      *86*cygwin*)
-         aesni_os=cygwin
-         aesni_options="-f win${CPU_BIT_STR}"
-      ;;
-   esac
-fi
-if test "x$aesni_options" != xDISABLED; then
-   AC_CACHE_CHECK([for yasm that supports "$aesni_options"], [ac_cv_path_YASM],
-      [AC_PATH_PROGS_FEATURE_CHECK([YASM], [yasm],
-         [[yasmout=`$ac_path_YASM $aesni_options 2>&1 | grep "No input files"`
-           test "x$yasmout" != x \
-           && ac_cv_path_YASM=$ac_path_YASM ac_path_YASM_found=:]]
-         )])
-fi
-
-if test "x$aesni_options" != xDISABLED -a "x$ac_path_YASM_found" != xfalse; then
-   using_aesni="run-time detection"
-elif test "$with_openssl" = "yes" -a "$cpu_family" = intel; then
-   using_aesni="depends on OpenSSL"
-else
-   using_aesni=no
-fi
-AC_SUBST([YASM], [$ac_cv_path_YASM])
-AC_SUBST([AESNI_OS],["$aesni_os"])
-AC_SUBST([YASM_OPTIONS],["$aesni_options"])
-
 JTR_SYSTEMS_SPECIFIC_LOGIC
 
 dnl The size of size_t and/or off_t might change when feature macros (chosen in
@@ -1091,7 +1036,12 @@ if test "`echo *_plug.c`" != "*_plug.c"; then
    AC_SUBST([OPENCL_PLUGFORMATS_OBJS],[`echo opencl*_plug.c | sed 's/\.c/.o/g'`])
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
       AC_MSG_NOTICE([creating Makefile dependencies])
-      AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl *_plug.c`])
+
+      dnl   The "plugin_deps.pl" script isn't clever enough to detect when
+      dnl   #include statements are ifdef'ed out, so we direct the warnings
+      dnl   to /dev/null. The mbedTLS directory has lots of inactive code
+      dnl   which otherwise triggering warnings for "missing" files.
+      AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl 2>/dev/null *_plug.c`])
    fi
 fi
 
@@ -1100,9 +1050,7 @@ echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${host_cpu} $
 
 AC_SUBST([HOST_OS],["$host_os"])
 AC_CONFIG_FILES([Makefile
-                 aes/Makefile
-                 aes/aesni/Makefile
-                 aes/openssl/Makefile
+                 mbedtls/Makefile
                  secp256k1/Makefile
                  ed25519-donna/Makefile
 		 poly1305-donna/Makefile])
@@ -1264,7 +1212,6 @@ dnl ======================================================================
 Configured for building John the Ripper ${PACKAGE_VERSION}:
 
 Target CPU ......................................... ${CPU_NAME}, ${CPU_BIT_STR}-bit ${using_endian}${using_x32}
-AES-NI support ..................................... ${using_aesni}
 Target OS .......................................... ${host_os}
 Cross compiling .................................... ${cross_compiling}
 Legacy arch header ................................. ${ARCH_LINK}

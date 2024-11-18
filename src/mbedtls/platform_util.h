@@ -11,11 +11,11 @@
 #ifndef MBEDTLS_PLATFORM_UTIL_H
 #define MBEDTLS_PLATFORM_UTIL_H
 
-#include "mbedtls/build_info.h"
+#include "build_info.h"
 
 #include <stddef.h>
 #if defined(MBEDTLS_HAVE_TIME_DATE)
-#include "mbedtls/platform_time.h"
+#include "platform_time.h"
 #include <time.h>
 #endif /* MBEDTLS_HAVE_TIME_DATE */
 
@@ -156,7 +156,10 @@ MBEDTLS_DEPRECATED typedef int mbedtls_deprecated_numeric_constant_t;
  * \param len   Length of the buffer in bytes
  *
  */
-void mbedtls_platform_zeroize(void *buf, size_t len);
+//void mbedtls_platform_zeroize(void *buf, size_t len);
+
+#define mbedtls_platform_zeroize(buf, len)
+
 #endif
 
 #if defined(MBEDTLS_HAVE_TIME_DATE)

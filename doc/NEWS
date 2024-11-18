@@ -354,6 +354,12 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   character classes got (very minor) changes - this can affect resuming old
   jobs  [magnum; 2024]
 
+- Dropped our old AES-NI code in favor of the AES code from mbedTLS, which
+  supports AES-NI (Intel) as well as AES-CE (Arm).  The new code kicks in for
+  any format using AES.  Boosts of up to 13x seen on Intel and 7x on MacBook
+  M1 (those are for the KeePass format with AES-KDF, which is extreme because
+  all the heavy lifting is AES).  [magnum; 2024]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 

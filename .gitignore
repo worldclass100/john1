@@ -73,7 +73,7 @@ run/wpapcap2john
 run/zip2john
 
 src/.gdbinit
-src/aes/aes.a
+src/mbedtls/aes.a
 src/arch.h
 src/all_tests.lst
 src/autoconfig-stamp-h

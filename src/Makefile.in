@@ -39,7 +39,7 @@ PEFLAGS = peflags --dynamicbase=true --nxcompat=true
 SHELL = /bin/sh
 VPATH = @srcdir@
 
-subdirs = aes secp256k1 ed25519-donna poly1305-donna @ZTEX_SUBDIRS@
+subdirs = mbedtls secp256k1 ed25519-donna poly1305-donna @ZTEX_SUBDIRS@
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 prefix = @prefix@
@@ -71,20 +71,6 @@ LDFLAGS = -g @LDFLAGS@ $(LIBS) @HAVE_MPI@
 OPT_NORMAL = @OPT_NORMAL_FLAGS@
 OPT_INLINE = @OPT_INLINE_FLAGS@
 #
-AES_OK := $(shell expr `$(CC) -dumpversion | cut -d '.' -f 1` \>= 4)
-YASM = @YASM@
-USE_AESNI = @AESNI_OS@
-AESNI_ARCH=@AESNI_ARCH@
-
-ifeq "$(AES_OK)" "1"
-	ifneq "$(YASM)" ""
-		ifdef USE_AESNI
-			ifdef AESNI_ARCH
-				AESNI_DEC = -DAESNI_IN_USE
-			endif
-		endif
-	endif
-endif
 
 PLUGFORMATS_OBJS = @PLUGFORMATS_OBJS@
 
@@ -206,8 +192,7 @@ endif
 default:
 	$(MAKE) find_version
 	@$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@" \
-		AESNI_ARCH=@AESNI_ARCH@
+		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@"
 
 	@if [ "$(OS)" = "Windows_NT" ]; then \
 		$(MAKE) peflags; \
@@ -525,15 +510,15 @@ unicode.o:	unicode.c common.h arch.h memory.h byteorder.h unicode.h options.h au
 
 unique.o:	unique.c autoconfig.h arch.h misc.h jumbo.h params.h memory.h os.h os-autoconf.h
 
-unrar.o:	unrar.c arch.h unrar.h aes.h autoconfig.h aes/aes_func.h unrarhlp.h memory.h jumbo.h unrarppm.h unrarvm.h unrarcmd.h unrarfilter.h os.h os-autoconf.h
+unrar.o:	unrar.c arch.h unrar.h aes.h autoconfig.h unrarhlp.h memory.h jumbo.h unrarppm.h unrarvm.h unrarcmd.h unrarfilter.h os.h os-autoconf.h
 
-unrarcmd.o:	unrarcmd.c aes.h autoconfig.h aes/aes_func.h unrar.h arch.h unrarhlp.h memory.h jumbo.h unrarppm.h unrarvm.h unrarcmd.h unrarfilter.h os.h os-autoconf.h
+unrarcmd.o:	unrarcmd.c aes.h autoconfig.h unrar.h arch.h unrarhlp.h memory.h jumbo.h unrarppm.h unrarvm.h unrarcmd.h unrarfilter.h os.h os-autoconf.h
 
-unrarfilter.o:	unrarfilter.c arch.h aes.h autoconfig.h aes/aes_func.h unrar.h unrarhlp.h memory.h jumbo.h unrarppm.h unrarvm.h unrarcmd.h unrarfilter.h os.h os-autoconf.h
+unrarfilter.o:	unrarfilter.c arch.h aes.h autoconfig.h unrar.h unrarhlp.h memory.h jumbo.h unrarppm.h unrarvm.h unrarcmd.h unrarfilter.h os.h os-autoconf.h
 
 unrarhlp.o:	unrarhlp.c jumbo.h arch.h unrarhlp.h memory.h os.h os-autoconf.h autoconfig.h
 
-unrarvm.o:	unrarvm.c arch.h aes.h autoconfig.h aes/aes_func.h unrar.h unrarhlp.h memory.h jumbo.h unrarppm.h unrarvm.h unrarcmd.h unrarfilter.h common.h os.h os-autoconf.h
+unrarvm.o:	unrarvm.c arch.h aes.h autoconfig.h unrar.h unrarhlp.h memory.h jumbo.h unrarppm.h unrarvm.h unrarcmd.h unrarfilter.h common.h os.h os-autoconf.h
 
 unshadow.o:	unshadow.c misc.h jumbo.h arch.h autoconfig.h params.h memory.h os.h os-autoconf.h
 
@@ -574,7 +559,7 @@ find_version:
 	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
 	diff >/dev/null 2>/dev/null version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
 
-SUBDIRS = aes secp256k1 ed25519-donna poly1305-donna @ZTEX_SUBDIRS@
+SUBDIRS = mbedtls secp256k1 ed25519-donna poly1305-donna @ZTEX_SUBDIRS@
 
 .PHONY: subdirs $(SUBDIRS) find_version
 
@@ -590,8 +575,8 @@ DES_bs_b.o:	DES_bs_b.c arch.h common.h memory.h DES_bs.h loader.h params.h list.
 miscnl.o: misc.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -D_JOHN_MISC_NO_LOG misc.c -o miscnl.o
 
-aes/aes.a:
-	$(MAKE) -C aes all
+mbedtls/aes.a:
+	$(MAKE) -C mbedtls all
 
 secp256k1/secp256k1.a:
 	$(MAKE) -C secp256k1 all
@@ -614,8 +599,8 @@ poly1305-donna/poly1305-donna.a:
 
 # PTHREAD_CFLAGS and OPENMP_CFLAGS may actually contain linker options,
 # like -fopenmp
-../run/john@EXE_EXT@: $(JOHN_OBJS) aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a poly1305-donna/poly1305-donna.a @ZTEX_SUBDIRS@
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @RT_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a poly1305-donna/poly1305-donna.a -o $@
+../run/john@EXE_EXT@: $(JOHN_OBJS) mbedtls/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a poly1305-donna/poly1305-donna.a @ZTEX_SUBDIRS@
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @RT_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ mbedtls/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a poly1305-donna/poly1305-donna.a -o $@
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow
@@ -756,11 +741,11 @@ path.o: path.c path.h autoconfig.h arch.h params.h misc.h memory.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O1 $*.c
 
 # Workaround for gcc 3.4.6 (seen on Sparc32) (do not use -funroll-loops)
-unrarppm.o:	unrarppm.c arch.h aes.h autoconfig.h aes/aes_func.h unrar.h unrarhlp.h memory.h jumbo.h unrarppm.h unrarvm.h unrarcmd.h unrarfilter.h common.h os.h os-autoconf.h
+unrarppm.o:	unrarppm.c arch.h aes.h autoconfig.h unrar.h unrarhlp.h memory.h jumbo.h unrarppm.h unrarvm.h unrarcmd.h unrarfilter.h common.h os.h os-autoconf.h
 	$(CC) -DAC_BUILT $(CFLAGS) $< -o $@
 
 .c.o:
-	$(CC) $(CFLAGS) $(OPT_NORMAL) $(AESNI_DEC) $< -o $@
+	$(CC) $(CFLAGS) $(OPT_NORMAL) $< -o $@
 
 .S.o:
 	$(AS) $(ASFLAGS) $*.S
