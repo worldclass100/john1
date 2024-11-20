@@ -326,22 +326,25 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			Twofish_key tkey;
 			struct chacha_ctx ckey;
 
+			memcpy(iv, cur_salt->enc_iv, 16);
 			if (cur_salt->cipher == 0) {
 				/* AES decrypt cur_salt->contents with final_key */
-				memcpy(iv, cur_salt->enc_iv, 16);
 				AES_set_decrypt_key(final_key, 256, &akey);
 			} else if (cur_salt->cipher == 1) {
-				memcpy(iv, cur_salt->enc_iv, 16);
 				memset(&tkey, 0, sizeof(Twofish_key));
 				Twofish_prepare_key(final_key, 32, &tkey);
-			} else if (cur_salt->cipher == 2) { // ChaCha20
-				memcpy(iv, cur_salt->enc_iv, 16);
+			} else /*if (cur_salt->cipher == 2)*/ { // ChaCha20
 				chacha_keysetup(&ckey, final_key, 256);
 				chacha_ivsetup(&ckey, iv, NULL, 12);
 			}
 
 			if (cur_salt->kdbx_ver == 1 && cur_salt->cipher == 0) {
-				decrypted_content = mem_alloc(cur_salt->content_size);
+				if (allocate(&decrypted_content, cur_salt->content_size)) {
+					failed = -1;
+#ifndef _OPENMP
+					break;
+#endif
+				}
 				AES_cbc_encrypt(cur_salt->contents, decrypted_content,
 				                cur_salt->content_size, &akey, iv, AES_DECRYPT);
 				pad_byte = decrypted_content[cur_salt->content_size - 1];
@@ -349,7 +352,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SHA256_Init(&ctx);
 				SHA256_Update(&ctx, decrypted_content, datasize);
 				SHA256_Final(out, &ctx);
-				MEM_FREE(decrypted_content);
+				deallocate(decrypted_content, cur_salt->content_size);
 				if (!memcmp(out, cur_salt->contents_hash, 32)) {
 					cracked[index] = 1;
 #ifdef _OPENMP
@@ -388,7 +391,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				/* KeePass 1.x with Twofish */
 				int crypto_size;
 
-				decrypted_content = mem_alloc(cur_salt->content_size);
+				if (allocate(&decrypted_content, cur_salt->content_size)) {
+					failed = -1;
+#ifndef _OPENMP
+					break;
+#endif
+				}
+
 				crypto_size = Twofish_Decrypt(&tkey, cur_salt->contents,
 				                              decrypted_content,
 				                              cur_salt->content_size, iv);
@@ -405,13 +414,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						any_cracked |= 1;
 					}
 				}
-				MEM_FREE(decrypted_content);
+				deallocate(decrypted_content, cur_salt->content_size);
 			}
 		}
 	}
 	if (failed) {
 #ifdef _OPENMP
-		fprintf(stderr, "Error: Keepass: Argon2 failed in some threads\n");
+		fprintf(stderr, "Error: Keepass: Argon2 or alloc_region failed in some threads\n");
 #endif
 		error();
 	}
