@@ -19,12 +19,7 @@
 #define KEEPASS_BINARY_SIZE         0
 #define KEEPASS_BINARY_ALIGN        MEM_ALIGN_NONE
 #define KEEPASS_SALT_SIZE           sizeof(keepass_salt_t)
-#if ARCH_ALLOWS_UNALIGNED
-// Avoid a compiler bug, see #1284
-#define KEEPASS_SALT_ALIGN          1
-#else
-#define KEEPASS_SALT_ALIGN          sizeof(uint64_t)
-#endif
+#define KEEPASS_SALT_ALIGN          sizeof(uint32_t)
 #define KEEPASS_MIN_KEYS_PER_CRYPT  1
 #define KEEPASS_MAX_KEYS_PER_CRYPT  1
 
