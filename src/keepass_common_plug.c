@@ -83,12 +83,9 @@ keepass_salt_t *keepass_salt;
 // Iterations, or Argon2 t
 unsigned int keepass_cost_t(void *salt)
 {
-	keepass_salt_t *ksalt = salt;
+	keepass_salt_t *ksalt = *((keepass_salt_t**)salt);
 
-	if (ksalt->kdf == 0)
-		return ksalt->key_transf_rounds;
-	else
-		return ksalt->t_cost;
+	return ksalt->t_cost;
 }
 
 // Argon2 m
@@ -96,7 +93,7 @@ unsigned int keepass_cost_t(void *salt)
 // and is the actual memory use per parallel calculation
 unsigned int keepass_cost_m(void *salt)
 {
-	keepass_salt_t *ksalt = salt;
+	keepass_salt_t *ksalt = *((keepass_salt_t**)salt);
 
 	if (ksalt->kdbx_ver < 4)
 		return 0;
@@ -106,7 +103,7 @@ unsigned int keepass_cost_m(void *salt)
 // Argon2 p
 unsigned int keepass_cost_p(void *salt)
 {
-	keepass_salt_t *ksalt = salt;
+	keepass_salt_t *ksalt = *((keepass_salt_t**)salt);
 
 	if (ksalt->kdbx_ver < 4)
 		return 0;
@@ -116,7 +113,7 @@ unsigned int keepass_cost_p(void *salt)
 // 0=Argon2d 2=Argon2id 3=AES
 unsigned int keepass_kdf(void *salt)
 {
-	keepass_salt_t *ksalt = salt;
+	keepass_salt_t *ksalt = *((keepass_salt_t**)salt);
 
 	if (ksalt->kdf == 0)
 		return 3;

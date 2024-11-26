@@ -42,6 +42,7 @@ typedef enum {
 #define ARGON2_SALT_SIZE            64
 
 typedef struct {
+	dyna_salt dsalt;
 	uint32_t t_cost, m_cost, lanes;
 	uint32_t hash_size;
 	uint32_t salt_length;
@@ -52,7 +53,6 @@ typedef struct {
 	int kdbx_ver;
 	uint32_t kdf; // 0=AES, 1=Argon2
 	uint32_t cipher; // 0=AES, 1=TwoFish, 2=ChaCha
-	uint32_t key_transf_rounds;
 	uint8_t enc_iv[16];   // KDBX3 and earlier
 	union {
 		uint8_t final_randomseed[32]; // KDBX3 and earlier
@@ -66,14 +66,8 @@ typedef struct {
 		uint8_t contents_hash[32]; // KDBX3 and earlier
 		uint8_t header_hmac[32];   // KDBX4 and later
 	};
-	union {
-		int content_size; // KDBX3 and earlier
-		int header_size; // KDBX4 and later
-	};
-	union {
-		uint8_t contents[MAX_CONTENT_SIZE]; // KDBX3 and earlier
-		uint8_t header[MAX_CONTENT_SIZE];   // KDBX4 and later
-	};
+	int content_size;    // (KDBX4 header_size)
+	uint8_t contents[1]; // (KDBX4 header) dynamic size
 } keepass_salt_t;
 
 typedef struct {
@@ -156,7 +150,7 @@ __kernel void keepass_init(__global const keepass_password *masterkey,
 		AES_set_encrypt_key(pbuf, 256, &akey);
 
 		// Save state for loop kernel.
-		state[gid].iterations = salt->key_transf_rounds;
+		state[gid].iterations = salt->t_cost;
 		memcpy_pg(&state[gid].akey, &akey, sizeof(AES_KEY));
 	}
 #endif
@@ -218,15 +212,16 @@ __kernel void keepass_final(__global keepass_state *state,
                             __global keepass_result *result)
 {
 	uint gid = get_global_id(0);
-	SHA256_CTX ctx;
-	AES_KEY akey;
-	uint8_t pbuf[32];
 	uint8_t hash[32];
-	uint8_t iv[16];
 
 	memcpy_macro(hash, state[gid].hash, 32);
 
 #if KEEPASS_AES
+	SHA256_CTX ctx;
+	AES_KEY akey;
+	uint8_t pbuf[32];
+	uint8_t iv[16];
+
 	// Finally, hash it again (only for AES-KDF)...
 	if (salt->kdf == 0) {
 		SHA256_Init(&ctx);
@@ -247,7 +242,7 @@ __kernel void keepass_final(__global keepass_state *state,
 		calc_hmac_key(&uint64_max, hmac_base_key, hmac_key);
 
 		uint8_t calc_hmac[32];
-		hmac_sha256(hmac_key, 64, salt->header, salt->header_size, calc_hmac, 32);
+		hmac_sha256(hmac_key, 64, salt->contents, salt->content_size, calc_hmac, 32);
 
 		result[gid].cracked = !memcmp_pmc(calc_hmac, salt->header_hmac, 32);
 	}

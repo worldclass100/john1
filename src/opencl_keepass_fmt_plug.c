@@ -67,7 +67,8 @@ static struct fmt_main *self;
 #define kernel_init crypt_kernel
 static cl_kernel kernel_loop_aes, kernel_final;
 
-static size_t insize, outsize, saltsize;
+static size_t insize, outsize;
+static size_t saltsize = sizeof(keepass_salt_t) + 32 - 1; // Min. content size is 32
 
 #if KEEPASS_ARGON2
 static cl_mem mem_pool;
@@ -80,7 +81,7 @@ static size_t keepass_max_argon2_memory;
 
 #define HASH_LOOPS		1000
 
-#define LOOP_COUNT		((keepass_salt->key_transf_rounds + HASH_LOOPS - 1) / HASH_LOOPS)
+#define LOOP_COUNT		((keepass_salt->t_cost + HASH_LOOPS - 1) / HASH_LOOPS)
 
 static int split_events[] = { 2, -1, -1 };
 
@@ -114,7 +115,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	size_t statesize = sizeof(keepass_state) * gws;
 	insize = sizeof(password) * gws;
 	outsize = sizeof(result) * gws;
-	saltsize = sizeof(keepass_salt_t);
 
 	inbuffer = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
@@ -265,7 +265,18 @@ static char *get_key(int index)
 
 static void set_salt(void *salt)
 {
-	keepass_salt = salt;
+	keepass_salt = *((keepass_salt_t**)salt);
+
+	if (sizeof(keepass_salt_t) + keepass_salt->content_size - 1 > saltsize) {
+		RELEASEBUFFER(mem_salt);
+		saltsize = sizeof(keepass_salt_t) + keepass_salt->content_size - 1;
+		CLCREATEBUFFER(mem_salt, CL_RO, saltsize);
+		CLKERNELARG(kernel_init, 1, mem_salt);
+		CLKERNELARG(kernel_final, 1, mem_salt);
+#if KEEPASS_ARGON2
+		CLKERNELARG(kernel_argon2, 1, mem_salt);
+#endif
+	}
 
 	CLWRITE(mem_salt, CL_FALSE, 0, saltsize, keepass_salt, NULL);
 	CLWRITE(mem_autotune, CL_FALSE, 0, sizeof(ocl_autotune_running),
@@ -373,7 +384,7 @@ struct fmt_main fmt_opencl_KeePass = {
 		KEEPASS_SALT_ALIGN,
 		KEEPASS_MIN_KEYS_PER_CRYPT,
 		KEEPASS_MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_DYNA_SALT | FMT_HUGE_INPUT,
 		{
 			"t (rounds)",
 #if KEEPASS_ARGON2

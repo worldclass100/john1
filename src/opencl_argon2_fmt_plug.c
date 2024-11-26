@@ -143,6 +143,7 @@ static kp_state_t *keepass_statebuffer;
 static cl_mem cl_keepass_in, cl_keepass_salt, cl_keepass_state, cl_keepass_out;
 static cl_kernel keepass_init, keepass_final;
 static size_t keepass_insize, keepass_statesize, keepass_outsize;
+static size_t keepass_saltsize = sizeof(keepass_salt_t) + 32 - 1; // Min. content size is 32
 // End keepass-argon2 specific stuff
 
 static uint32_t index_best_kernel_params(argon2_type type, uint32_t lanes, uint32_t segment_blocks)
@@ -554,7 +555,9 @@ static void reset(struct db_main *db)
 	struct db_salt *curr_salt = db->salts;
 	for (i = 0; i < db->salt_count; i++) {
 		assert(curr_salt && curr_salt->salt);
-		struct argon2_salt *salt = (struct argon2_salt *)curr_salt->salt;
+		struct argon2_salt *salt = (argon2_self == &fmt_opencl_keepass_argon2) ?
+			(struct argon2_salt *)&(*((keepass_salt_t**)curr_salt->salt))->t_cost :
+			(struct argon2_salt *)curr_salt->salt;
 
 		uint32_t segment_blocks = MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2);
 		if (max_segment_blocks < segment_blocks)
@@ -729,7 +732,9 @@ static void reset(struct db_main *db)
 	// Iterate on all salts and autotuned for each one
 	curr_salt = db->salts;
 	for (i = 0; i < db->salt_count; i++) {
-		struct argon2_salt *salt = (struct argon2_salt *)curr_salt->salt;
+		struct argon2_salt *salt = (argon2_self == &fmt_opencl_keepass_argon2) ?
+			(struct argon2_salt *)&(*((keepass_salt_t**)curr_salt->salt))->t_cost :
+			(struct argon2_salt *)curr_salt->salt;
 
 		// LWS was given on command-line/config
 		if (local_work_size && !self_test_running) {
@@ -817,7 +822,7 @@ static void reset(struct db_main *db)
 		keepass_outbuffer = mem_alloc(keepass_outsize);
 
 		CLCREATEBUFFER(cl_keepass_in, CL_RO, keepass_insize);
-		CLCREATEBUFFER(cl_keepass_salt, CL_RO, sizeof(keepass_salt_t));
+		CLCREATEBUFFER(cl_keepass_salt, CL_RO, keepass_saltsize);
 		CLCREATEBUFFER(cl_keepass_state, CL_RW, keepass_statesize);
 		CLCREATEBUFFER(cl_keepass_out, CL_WO, keepass_outsize);
 
@@ -977,12 +982,21 @@ static void set_salt(void *salt)
 
 static void kp_set_salt(void *salt)
 {
-	keepass_salt = salt;
+	keepass_salt = *((keepass_salt_t**)salt);
 
-	// The KeePass salt is piggy-backed on a plain Argon2 salt
-	memcpy(&saved_salt, salt, sizeof(struct argon2_salt));
+	// The KeePass salt is dynamic size, but starts off with a plain
+	// Argon2 salt after the dyna_salt header
+	memcpy(&saved_salt, &keepass_salt->t_cost, sizeof(struct argon2_salt));
 
-	CLWRITE(cl_keepass_salt, CL_FALSE, 0, sizeof(keepass_salt_t), keepass_salt, NULL);
+	if (sizeof(keepass_salt_t) + keepass_salt->content_size - 1 > keepass_saltsize) {
+		RELEASEBUFFER(cl_keepass_salt);
+		keepass_saltsize = sizeof(keepass_salt_t) + keepass_salt->content_size - 1;
+		CLCREATEBUFFER(cl_keepass_salt, CL_RO, keepass_saltsize);
+		CLKERNELARG(keepass_init, 1, cl_keepass_salt);
+		//CLKERNELARG(keepass_argon2, 1, cl_keepass_salt);
+		CLKERNELARG(keepass_final, 1, cl_keepass_salt);
+	}
+	CLWRITE(cl_keepass_salt, CL_FALSE, 0, keepass_saltsize, keepass_salt, NULL);
 	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in keepass_set_salt()");
 }
 
@@ -1266,17 +1280,17 @@ struct fmt_main fmt_opencl_keepass_argon2 = {
 		KP_ARGON_FORMAT_LABEL,
 		KP_ARGON_FORMAT_NAME,
 		ALGORITHM_NAME,
-		BENCHMARK_COMMENT,
-		BENCHMARK_LENGTH,
+		KEEPASS_BENCHMARK_COMMENT,
+		KEEPASS_BENCHMARK_LENGTH,
 		0,
 		KEEPASS_PLAINTEXT_LENGTH,
 		KEEPASS_BINARY_SIZE,
-		BINARY_ALIGN,
+		KEEPASS_BINARY_ALIGN,
 		KEEPASS_SALT_SIZE,
-		SALT_ALIGN,
+		KEEPASS_SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT_ORIGINAL,
-		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_DYNA_SALT | FMT_HUGE_INPUT,
 		{
 			"t",
 			"m",

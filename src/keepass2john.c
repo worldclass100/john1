@@ -798,19 +798,19 @@ static void process_database(char* encryptedDatabase)
 		printf("*");
 		print_hex(out, 32);
 	} else {
-		size_t header_size = ftell(fp);
+		size_t content_size = ftell(fp);
 		unsigned char calc_hash[32];
 		fseek(fp, 0, SEEK_SET);
-		unsigned char *header = mem_alloc(header_size);
+		unsigned char *header = mem_alloc(content_size);
 		SHA256_CTX ctx;
 
-		if (fread(header, header_size, 1, fp) != 1) {
+		if (fread(header, content_size, 1, fp) != 1) {
 			fprintf(stderr, "error reading header!\n");
 			goto bailout;
 		}
 
 		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, header, header_size);
+		SHA256_Update(&ctx, header, content_size);
 		SHA256_Final(calc_hash, &ctx);
 
 		unsigned char header_hash[32];
@@ -838,7 +838,7 @@ static void process_database(char* encryptedDatabase)
 		printf("*");
 		print_hex(transformSeed, transformSeedLength);
 		printf("*");
-		print_hex(header, header_size);
+		print_hex(header, content_size);
 		printf("*");
 		print_hex(header_hmac, 32);
 

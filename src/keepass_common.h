@@ -10,6 +10,7 @@
  */
 #include "john.h"
 #include "argon2.h"
+#include "dyna_salt.h"
 
 #define KEEPASS_FORMAT_TAG          "$keepass$*"
 #define KEEPASS_FORMAT_TAG_LEN      (sizeof(KEEPASS_FORMAT_TAG)-1)
@@ -18,23 +19,19 @@
 #define KEEPASS_PLAINTEXT_LENGTH    124
 #define KEEPASS_BINARY_SIZE         0
 #define KEEPASS_BINARY_ALIGN        MEM_ALIGN_NONE
-#define KEEPASS_SALT_SIZE           sizeof(keepass_salt_t)
-#if ARCH_ALLOWS_UNALIGNED
-// Avoid a compiler bug, see #1284
-#define KEEPASS_SALT_ALIGN          1
-#else
-#define KEEPASS_SALT_ALIGN          sizeof(uint64_t)
-#endif
+#define KEEPASS_SALT_SIZE           sizeof(keepass_salt_t*)
+#define KEEPASS_SALT_ALIGN          sizeof(keepass_salt_t*)
 #define KEEPASS_MIN_KEYS_PER_CRYPT  1
 #define KEEPASS_MAX_KEYS_PER_CRYPT  1
 
-/* This format should be dyna salt instead! */
-#define KEEPASS_MAX_CONTENT_SIZE    0x1000000
+/* This format has dynamic size salt, the figure here is just for sanity */
+#define KEEPASS_MAX_CONTENT_SIZE    0x10000000
 
 /* This must match argon2-opencl */
 #define ARGON2_SALT_SIZE            64
 
 typedef struct {
+	dyna_salt dsalt;
 	uint32_t t_cost, m_cost, lanes;
 	uint32_t hash_size;
 	uint32_t salt_length;
@@ -45,7 +42,6 @@ typedef struct {
 	int kdbx_ver;
 	uint32_t kdf; // 0=AES, 1=Argon2
 	uint32_t cipher; // 0=AES, 1=TwoFish, 2=ChaCha
-	uint32_t key_transf_rounds;
 	uint8_t enc_iv[16];   // KDBX3 and earlier
 	union {
 		uint8_t final_randomseed[32]; // KDBX3 and earlier
@@ -59,14 +55,8 @@ typedef struct {
 		uint8_t contents_hash[32]; // KDBX3 and earlier
 		uint8_t header_hmac[32];   // KDBX4 and later
 	};
-	union {
-		int content_size; // KDBX3 and earlier
-		int header_size; // KDBX4 and later
-	};
-	union {
-		uint8_t contents[KEEPASS_MAX_CONTENT_SIZE]; // KDBX3 and earlier
-		uint8_t header[KEEPASS_MAX_CONTENT_SIZE];   // KDBX4 and later
-	};
+	int content_size;    // (KDBX4 header_size)
+	uint8_t contents[1]; // (KDBX4 header) dynamic size
 } keepass_salt_t;
 
 #if !KEEPASS_COMMON_CODE
@@ -204,18 +194,18 @@ static int keepass_valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* header */
 			goto err;
-		uint32_t header_size = hexlenl(p, &extra) / 2;
+		uint32_t content_size = hexlenl(p, &extra) / 2;
 		if (extra)
 			goto err;
-		if (header_size > KEEPASS_MAX_CONTENT_SIZE) {
+		if (content_size > KEEPASS_MAX_CONTENT_SIZE) {
 			static int warned;
 
-			if (!ldr_in_pot && john_main_process && warned < header_size) {
+			if (!ldr_in_pot && john_main_process && warned < content_size) {
 				fprintf(stderr,
 				        "%s: Input rejected due to larger size than compile-time limit.\n"
 				        "Bump KEEPASS_MAX_CONTENT_SIZE in keepass_common.h to >= 0x%x, and rebuild\n",
-				        self->params.label, header_size);
-				warned = header_size;
+				        self->params.label, content_size);
+				warned = content_size;
 			}
 			goto err;
 		}
@@ -306,7 +296,8 @@ static void *keepass_get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
-	static keepass_salt_t cs;
+	keepass_salt_t cs;
+	uint8_t *contents = NULL;
 
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += KEEPASS_FORMAT_TAG_LEN;	/* skip over "$keepass$*" */
@@ -317,7 +308,7 @@ static void *keepass_get_salt(char *ciphertext)
 	if (cs.kdbx_ver == 1) { // KDBX < 3
 		cs.kdf = 0;
 		p = strtokm(NULL, "*");
-		cs.key_transf_rounds = atoi(p);
+		cs.t_cost = atoi(p);
 		p = strtokm(NULL, "*");
 		cs.cipher = atoi(p);
 		p = strtokm(NULL, "*");
@@ -341,14 +332,15 @@ static void *keepass_get_salt(char *ciphertext)
 			p = strtokm(NULL, "*");
 			cs.content_size = atoi(p);
 			p = strtokm(NULL, "*");
+			contents = mem_alloc(cs.content_size);
 			for (i = 0; i < cs.content_size; i++)
-				cs.contents[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				contents[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 		}
 	} else if (cs.kdbx_ver == 2) { // KDBX3
 		cs.kdf = 0;
 		p = strtokm(NULL, "*");
-		cs.key_transf_rounds = atoi(p);
+		cs.t_cost = atoi(p);
 		p = strtokm(NULL, "*");
 		cs.cipher = atoi(p);
 		p = strtokm(NULL, "*");
@@ -368,8 +360,10 @@ static void *keepass_get_salt(char *ciphertext)
 			cs.expected_bytes[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 		p = strtokm(NULL, "*");
+		cs.content_size = 32;
+		contents = mem_alloc(cs.content_size);
 		for (i = 0; i < 32; i++)
-			cs.contents[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			contents[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	} else
 #endif
@@ -390,7 +384,7 @@ static void *keepass_get_salt(char *ciphertext)
 #if KEEPASS_AES
 		else {
 			cs.kdf = 0;
-			cs.key_transf_rounds = iter;
+			cs.t_cost = iter;
 		}
 #endif
 		p = strtokm(NULL, "*");
@@ -408,9 +402,10 @@ static void *keepass_get_salt(char *ciphertext)
 			cs.transf_randomseed[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 		p = strtokm(NULL, "*");
-		cs.header_size = strlen(p) / 2;
-		for (i = 0; i < cs.header_size; i++)
-			cs.header[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+		cs.content_size = strlen(p) / 2;
+		contents = mem_alloc(cs.content_size);
+		for (i = 0; i < cs.content_size; i++)
+			contents[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 		p = strtokm(NULL, "*");
 		for (i = 0; i < 32; i++)
@@ -439,7 +434,17 @@ static void *keepass_get_salt(char *ciphertext)
 		cs.cipher = 0;  // AES
 #endif
 
-	return (void *)&cs;
+	/* Now build dynamic salt and return a pointer to a pointer to it */
+	static keepass_salt_t *psalt;
+	psalt = mem_alloc(sizeof(keepass_salt_t) + cs.content_size - 1);
+	memcpy(psalt, &cs, sizeof(cs));
+	memcpy(psalt->contents, contents, cs.content_size);
+	MEM_FREE(contents);
+	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(keepass_salt_t, t_cost);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(keepass_salt_t, t_cost, contents, psalt->content_size);
+	psalt->dsalt.salt_alloc_needs_free = 1;
+
+	return &psalt;
 }
 #endif	/* !KEEPASS_COMMON_CODE */
 

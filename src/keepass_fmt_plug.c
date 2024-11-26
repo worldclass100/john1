@@ -169,7 +169,7 @@ static char *get_key(int index)
 
 static void set_salt(void *salt)
 {
-	cur_salt = (keepass_salt_t*)salt;
+	cur_salt = *((keepass_salt_t**)salt);
 }
 
 // GenerateKey32 from CompositeKey.cs
@@ -201,7 +201,7 @@ static int transform_key(char *masterkey, unsigned char *final_key)
 		AES_KEY akey;
 		AES_set_encrypt_key(cur_salt->transf_randomseed, 256, &akey);
 
-		unsigned int rounds = cur_salt->key_transf_rounds;
+		unsigned int rounds = cur_salt->t_cost;
 		while (rounds--) {
 			AES_encrypt(hash, hash, &akey);
 			AES_encrypt(hash+16, hash+16, &akey);
@@ -306,7 +306,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			hmacKey(UINT64_MAX, hmac_base_key, hmac_key);
 
 			uint8_t calc_hmac[32];
-			hmac_sha256(hmac_key, 64, cur_salt->header, cur_salt->header_size, calc_hmac, 32);
+			hmac_sha256(hmac_key, 64, cur_salt->contents, cur_salt->content_size, calc_hmac, 32);
 
 			if (!memcmp(cur_salt->header_hmac, calc_hmac, 32)) {
 				cracked[index] = 1;
@@ -457,7 +457,7 @@ struct fmt_main fmt_KeePass = {
 		KEEPASS_SALT_ALIGN,
 		KEEPASS_MIN_KEYS_PER_CRYPT,
 		KEEPASS_MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT | FMT_HUGE_INPUT,
 		{
 			"t (rounds)",
 			"m",
