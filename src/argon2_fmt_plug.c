@@ -153,7 +153,7 @@ static void init(struct fmt_main *self)
 	thread_mem = mem_calloc(NUM_THREADS, sizeof(struct argon2_memory));
 
 	for (i = 0; i < NUM_THREADS; i++)
-		init_region_t(&thread_mem[i].region);
+		init_region(&thread_mem[i].region);
 }
 
 static void done(void)
@@ -164,7 +164,7 @@ static void done(void)
 	MEM_FREE(crypted);
 	MEM_FREE(saved_key);
 	for (i = 0; i < NUM_THREADS; i++)
-		free_region_t(&thread_mem[i].region);
+		free_region(&thread_mem[i].region);
 	MEM_FREE(thread_mem);
 }
 
@@ -281,8 +281,8 @@ static int allocate(uint8_t **memory, size_t size)
 	}
 
 	if (thread_mem[THREAD_NUMBER].region.aligned_size < size) {
-		if (free_region_t(&thread_mem[THREAD_NUMBER].region) ||
-		    !alloc_region_t(&thread_mem[THREAD_NUMBER].region, size))
+		if (free_region(&thread_mem[THREAD_NUMBER].region) ||
+		    !alloc_region(&thread_mem[THREAD_NUMBER].region, size))
 			goto fail;
 	}
 

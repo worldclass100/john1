@@ -97,7 +97,7 @@ static void init(struct fmt_main *self)
 	any_cracked = 0;
 
 	for (i = 0; i < NUM_THREADS; i++)
-		init_region_t(&thread_mem[i].region);
+		init_region(&thread_mem[i].region);
 
 	Twofish_initialise();
 }
@@ -109,7 +109,7 @@ static void done(void)
 	MEM_FREE(cracked);
 	MEM_FREE(keepass_key);
 	for (i = 0; i < NUM_THREADS; i++)
-		free_region_t(&thread_mem[i].region);
+		free_region(&thread_mem[i].region);
 	MEM_FREE(thread_mem);
 }
 
@@ -125,8 +125,8 @@ static int allocate(uint8_t **memory, size_t size)
 	}
 
 	if (thread_mem[THREAD_NUMBER].region.aligned_size < size) {
-		if (free_region_t(&thread_mem[THREAD_NUMBER].region) ||
-		    !alloc_region_t(&thread_mem[THREAD_NUMBER].region, size))
+		if (free_region(&thread_mem[THREAD_NUMBER].region) ||
+		    !alloc_region(&thread_mem[THREAD_NUMBER].region, size))
 			goto fail;
 	}
 

@@ -644,7 +644,7 @@ void alter_endianity_w64(void *_x, unsigned int count) {
 #endif
 
 void *
-alloc_region_t(region_t * region, size_t size)
+alloc_region(region_t * region, size_t size)
 {
 	size_t base_size = size;
 	void * base, * aligned;
@@ -702,13 +702,13 @@ alloc_region_t(region_t * region, size_t size)
 	return aligned;
 }
 
-inline void init_region_t(region_t * region)
+inline void init_region(region_t * region)
 {
 	region->base = region->aligned = NULL;
 	region->base_size = region->aligned_size = 0;
 }
 
-int free_region_t(region_t * region)
+int free_region(region_t * region)
 {
 	if (region->base) {
 #ifdef MAP_ANON
@@ -718,6 +718,6 @@ int free_region_t(region_t * region)
 		free(region->base);
 #endif
 	}
-	init_region_t(region);
+	init_region(region);
 	return 0;
 }
