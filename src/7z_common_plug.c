@@ -253,16 +253,11 @@ err:
 void *sevenzip_get_salt(char *ciphertext)
 {
 	sevenzip_salt_t cs;
-	sevenzip_salt_t *psalt;
-	static void *ptr;
 	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
 
-	if (!ptr)
-		ptr = mem_alloc_tiny(sizeof(sevenzip_salt_t*),
-		                     sizeof(sevenzip_salt_t*));
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "$");
@@ -285,6 +280,9 @@ void *sevenzip_get_salt(char *ciphertext)
 		cs.crc = atou(p); /* unsigned function */
 	p = strtokm(NULL, "$");
 	cs.aes_length = atoll(p);
+
+	/* Now we know the size of the dyna salt, so we can allocate */
+	static sevenzip_salt_t *psalt;
 	psalt = mem_alloc(sizeof(sevenzip_salt_t) + cs.aes_length - 1);
 	memcpy(psalt, &cs, sizeof(cs));
 	p = strtokm(NULL, "$");
@@ -314,8 +312,7 @@ void *sevenzip_get_salt(char *ciphertext)
 	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(sevenzip_salt_t, aes_length, data, psalt->aes_length);
 	psalt->dsalt.salt_alloc_needs_free = 1;
 
-	memcpy(ptr, &psalt, sizeof(void*));
-	return ptr;
+	return &psalt;
 }
 
 int sevenzip_salt_compare(const void *x, const void *y)

@@ -119,69 +119,61 @@ err:
 void *krb5tgs_get_salt(char *ciphertext)
 {
 	int i;
-	krb5tgs_salt *psalt;
-	static unsigned char *ptr;
 	char *p;
 	char *ctcopy;
 	char *keeptr;
 
-	if (!ptr)
-		ptr = mem_alloc_tiny(sizeof(krb5tgs_salt*),sizeof(krb5tgs_salt*));
-
 	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) == 0) {
-		ctcopy += FORMAT_TAG_LEN;
-		if (ctcopy[0] == '*') {
-			ctcopy++;
-			p = strtokm(ctcopy, "*");
-			ctcopy += strlen(p) + 2;
-			goto edata;
-		}
-		if (ctcopy[0]=='$')
-			ctcopy++;
+	ctcopy += FORMAT_TAG_LEN;
+	if (ctcopy[0] == '*') {
+		ctcopy++;
+		p = strtokm(ctcopy, "*");
+		ctcopy += strlen(p) + 2;
+		goto edata;
 	}
+	if (ctcopy[0]=='$')
+		ctcopy++;
 
 edata:
-	if (((p = strtokm(ctcopy, "$")) != NULL) && strlen(p) == 32) {	/* assume checksum */
+	p = strtokm(ctcopy, "$");
 
-		unsigned char edata1[16];
-		for (i = 0; i < 16; i++) {
-			edata1[i] =
-				atoi16[ARCH_INDEX(p[i * 2])] * 16 +
-				atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		}
+	unsigned char edata1[16];
+	for (i = 0; i < 16; i++) {
+		edata1[i] =
+			atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	}
 
-		/* skip '$' */
-		p += strlen(p) + 1;
+	/* skip '$' */
+	p += strlen(p) + 1;
 
-		/* retrieve non-constant length of edata2 */
-		for (i = 0; p[i] != '\0'; i++)
-			;
+	/* retrieve non-constant length of edata2 */
+	for (i = 0; p[i] != '\0'; i++)
+		;
 
-		size_t edata2len = i / 2;
-		if (edata2len > krb5tgs_max_data_len)
-			krb5tgs_max_data_len = edata2len;
+	size_t edata2len = i / 2;
+	if (edata2len > krb5tgs_max_data_len)
+		krb5tgs_max_data_len = edata2len;
 
-		psalt = mem_calloc(1, sizeof(krb5tgs_salt) + edata2len);
-		memcpy(psalt->edata1, edata1, 16);
-		psalt->edata2len = edata2len;
+	/* Now build dynamic salt and return a pointer to a pointer to it */
+	static krb5tgs_salt *psalt;
+	psalt = mem_calloc(1, sizeof(krb5tgs_salt) + edata2len);
+	memcpy(psalt->edata1, edata1, 16);
+	psalt->edata2len = edata2len;
 
-		for (i = 0; i < edata2len; i++) {	/* assume edata2 */
-			psalt->edata2[i] =
-				atoi16[ARCH_INDEX(p[i * 2])] * 16 +
-				atoi16[ARCH_INDEX(p[i * 2 + 1])];
-		}
-
-		/* Set the JtR core linkage stuff for this dyna_salt */
-		psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(krb5tgs_salt, edata1);
-		psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(krb5tgs_salt, edata1, edata2len, psalt->edata2len);
-		psalt->dsalt.salt_alloc_needs_free = 1;
-
-		memcpy(ptr, &psalt, sizeof(krb5tgs_salt*));
+	for (i = 0; i < edata2len; i++) {	/* assume edata2 */
+		psalt->edata2[i] =
+			atoi16[ARCH_INDEX(p[i * 2])] * 16 +
+			atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
 	MEM_FREE(keeptr);
 
-	return (void*)ptr;
+	/* Set the JtR core linkage stuff for this dyna_salt */
+	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(krb5tgs_salt, edata1);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(krb5tgs_salt, edata1, edata2len, psalt->edata2len);
+	psalt->dsalt.salt_alloc_needs_free = 1;
+
+	return &psalt;
 }

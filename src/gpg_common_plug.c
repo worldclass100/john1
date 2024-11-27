@@ -859,11 +859,9 @@ void *gpg_common_get_salt(char *ciphertext)
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
-	struct gpg_common_custom_salt cs, *psalt;
-	static unsigned char *ptr;
+	struct gpg_common_custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
-	if (!ptr) ptr = mem_alloc_tiny(sizeof(struct gpg_common_custom_salt*),sizeof(struct gpg_common_custom_salt*));
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$gpg$" marker and first '*' */
 	p = strtokm(ctcopy, "*");
 	cs.pk_algorithm = atoi(p);
@@ -875,6 +873,7 @@ void *gpg_common_get_salt(char *ciphertext)
 
 	/* Ok, now we 'know' the size of the dyna salt, so we can allocate */
 	/* note the +64 is due to certain algo's reading dirty data, up to 64 bytes past end */
+	static struct gpg_common_custom_salt *psalt;
 	psalt = mem_calloc(sizeof(struct gpg_common_custom_salt) + cs.datalen + 64, 1);
 	psalt->pk_algorithm = cs.pk_algorithm;
 	psalt->symmetric_mode = cs.symmetric_mode;
@@ -1047,8 +1046,7 @@ void *gpg_common_get_salt(char *ciphertext)
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(struct gpg_common_custom_salt, datalen);
 	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(struct gpg_common_custom_salt, datalen, data, psalt->datalen);
 
-	memcpy(ptr, &psalt, sizeof(struct gpg_common_custom_salt*));
-	return (void*)ptr;
+	return &psalt;
 }
 
 static unsigned int length_of_multi_precision_integer(const unsigned char *buf)
