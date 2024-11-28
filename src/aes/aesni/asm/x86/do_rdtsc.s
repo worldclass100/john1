@@ -1,6 +1,13 @@
 [bits 32]
 [CPU intelnop]
 
+%ifidn __OUTPUT_FORMAT__,elf
+section .note.GNU-stack noalloc noexec nowrite progbits
+%endif
+%ifidn __OUTPUT_FORMAT__,elf32
+section .note.GNU-stack noalloc noexec nowrite progbits
+%endif
+
 ; Copyright (c) 2010, Intel Corporation
 ; All rights reserved.
 ;
