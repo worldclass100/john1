@@ -155,12 +155,22 @@ static void listconf_list_build_info(void)
 #endif
 	puts("Version: " JTR_GIT_VERSION);
 	puts("Build: " JOHN_BLD _MP_VERSION OCL_STRING ZTEX_STRING DEBUG_STRING ASAN_STRING UBSAN_STRING);
+
 #ifdef SIMD_COEF_32
 	printf("SIMD: %s, interleaving: MD4:%d MD5:%d SHA1:%d SHA256:%d SHA512:%d\n",
 	       SIMD_TYPE,
 	       SIMD_PARA_MD4, SIMD_PARA_MD5, SIMD_PARA_SHA1,
 	       SIMD_PARA_SHA256, SIMD_PARA_SHA512);
 #endif
+	printf("AES hardware acceleration: %s\n",
+#if defined(MBEDTLS_AESNI_HAVE_CODE)
+	       mbedtls_aesni_has_support(MBEDTLS_AESNI_AES) ? "AES-NI" :
+#endif
+#if defined(MBEDTLS_AESCE_HAVE_CODE)
+	       MBEDTLS_AESCE_HAS_SUPPORT() ? "AES-CE" :
+#endif
+	       "no");
+
 #if JOHN_SYSTEMWIDE
 	puts("System-wide exec: " JOHN_SYSTEMWIDE_EXEC);
 	puts("System-wide home: " JOHN_SYSTEMWIDE_HOME);
@@ -355,15 +365,6 @@ static void listconf_list_build_info(void)
 
 	printf("Terminal locale string: %s\n", john_terminal_locale);
 	printf("Parsed terminal locale: %s\n", cp_id2name(options.terminal_enc));
-
-	printf("AES hardware acceleration: %s\n",
-#if defined(MBEDTLS_AESNI_HAVE_CODE)
-	       mbedtls_aesni_has_support(MBEDTLS_AESNI_AES) ? "AES-NI" :
-#endif
-#if defined(MBEDTLS_AESCE_HAVE_CODE)
-	       MBEDTLS_AESCE_HAS_SUPPORT() ? "AES-CE" :
-#endif
-	       "no");
 
 #ifdef __CYGWIN__
 	{
