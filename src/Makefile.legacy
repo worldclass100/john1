@@ -1916,7 +1916,7 @@ config_g.o: config.c
 	$(CC) $(CFLAGS) -DBENCH_BUILD config.c -o config_g.o
 
 pp.o: pp.c
-	$(CC) $(CFLAGS) $(OPT_NORMAL) -DJTR_MODE -Wno-declaration-after-statement -std=c99 pp.c -o pp.o
+	$(CC) $(CFLAGS) $(OPT_NORMAL) -DJTR_MODE -Wno-declaration-after-statement -std=gnu99 pp.c -o pp.o
 
 # This is for the BENCH build (to not depend upon options.o)
 common_g.o: common.o

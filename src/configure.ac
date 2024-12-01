@@ -232,6 +232,9 @@ fi
    CFLAGS_EX=""
    JTR_FLAG_CHECK([-Wall], 1)
 
+   dnl Add -std=gnu99 if supported
+   JTR_FLAG_CHECK([-std=gnu99], 1)
+
    dnl False positives from gcc 8
    if (test "x$asan" != xyes); then
       JTR_NOWARN_CHECK([stringop-truncation], 1)
