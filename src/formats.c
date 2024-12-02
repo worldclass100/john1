@@ -1136,18 +1136,18 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		/* validate that salt() returns cleaned buffer */
 		if (extra_tests && !salt_cleaned_warned && format->params.salt_size) {
 			if ((format->params.flags & FMT_DYNA_SALT) == FMT_DYNA_SALT) {
-				dyna_salt *p1, *p2=0, *p3=0;
-				p1 = *((dyna_salt**)salt);
+				dyna_salt_t *p1, *p2=0, *p3=0;
+				p1 = *((dyna_salt_t**)salt);
 				dyna_salt_smash(salt, 0xAF);
 				salt = format->methods.salt(ciphertext);
 				dyna_salt_create(salt);
-				p2 = *((dyna_salt**)salt);
+				p2 = *((dyna_salt_t**)salt);
 				if (dyna_salt_smash_check(salt, 0xAF))
 				{
 					dyna_salt_smash(salt, 0xC3);
 					salt = format->methods.salt(ciphertext);
 					dyna_salt_create(salt);
-					p3 = *((dyna_salt**)salt);
+					p3 = *((dyna_salt_t**)salt);
 					if (dyna_salt_smash_check(salt, 0xC3)) {
 						/* possibly did not clean the salt. */
 						puts("Warning: salt() not pre-cleaning buffer");
@@ -2136,8 +2136,8 @@ int fmt_default_salt_hash(void *salt)
 
 int fmt_default_dyna_salt_hash(void *salt)
 {
-	/* if the hash is a dyna_salt type hash, it can simply use this function */
-	dyna_salt_john_core *mysalt = *(dyna_salt_john_core **)salt;
+	/* if the hash is a dyna_salt_t type hash, it can simply use this function */
+	dyna_salt_john_core_t *mysalt = *(dyna_salt_john_core_t **)salt;
 	unsigned v;
 	int i;
 	unsigned char *p;

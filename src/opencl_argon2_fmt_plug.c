@@ -985,7 +985,7 @@ static void kp_set_salt(void *salt)
 	keepass_salt = *((keepass_salt_t**)salt);
 
 	// The KeePass salt is dynamic size, but starts off with a plain
-	// Argon2 salt after the dyna_salt header
+	// Argon2 salt after the dyna_salt_t header
 	memcpy(&saved_salt, &keepass_salt->t_cost, sizeof(struct argon2_salt));
 
 	if (sizeof(keepass_salt_t) + keepass_salt->content_size - 1 > keepass_saltsize) {

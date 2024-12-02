@@ -82,7 +82,7 @@ enum {
 #endif
 
 struct gpg_common_custom_salt {
-	dyna_salt dsalt;
+	dyna_salt_t dsalt;
 	int datalen;
 	char spec;
 	char pk_algorithm;

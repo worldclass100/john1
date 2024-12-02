@@ -11,7 +11,7 @@
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 
 struct custom_salt {
-	dyna_salt dsalt;
+	dyna_salt_t dsalt;
 	int version;
 	uint32_t key_wrapping_rounds;
 	uint32_t deriv_salt_length;

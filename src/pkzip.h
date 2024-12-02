@@ -58,7 +58,7 @@ typedef struct zip_hash_type_t {
 } ZIP_HASH;
 
 typedef struct winzip_salt_t {
-	dyna_salt dsalt;
+	dyna_salt_t dsalt;
 	uint64_t comp_len;
 	struct {
 		uint16_t type : 4;
@@ -70,7 +70,7 @@ typedef struct winzip_salt_t {
 } winzip_salt;
 
 typedef struct zip_salt_t {
-	dyna_salt dsalt;
+	dyna_salt_t dsalt;
 	char fname[1024];			// if the zip is too large, we open the file in cmp_exact read the
 								// data a small buffer at a time.  If the zip blob is small enough
 								// (under 16k), then it simply read into H[x].h at init() time.

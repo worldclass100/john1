@@ -198,7 +198,7 @@ void *krb5_asrep_get_salt(char *ciphertext)
 
 	MEM_FREE(keeptr);
 
-	/* following is used to fool dyna_salt stuff */
+	/* following is used to fool dyna_salt_t stuff */
 	cs.dsalt.salt_cmp_offset = SALT_CMP_OFF(struct custom_salt, edata1);
 	cs.dsalt.salt_cmp_size = SALT_CMP_SIZE(struct custom_salt, edata1, edata2len, 0);
 	cs.dsalt.salt_alloc_needs_free = 0;

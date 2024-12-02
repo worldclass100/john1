@@ -39,7 +39,7 @@ john_register_one(&FORMAT_STRUCT);
 #define PLAINTEXT_LENGTH	24 //* 19 is leanest, 24, 28, 31, max. 51 */
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		MEM_ALIGN_NONE
-#define SALT_SIZE		sizeof(dyna_salt*)
+#define SALT_SIZE		sizeof(dyna_salt_t*)
 #define SALT_ALIGN		MEM_ALIGN_WORD
 
 #define MIN_KEYS_PER_CRYPT	1
@@ -80,7 +80,7 @@ static struct fmt_tests oo_tests[] = {
 };
 
 typedef struct {
-	dyna_salt dsalt;
+	dyna_salt_t dsalt;
 	int type;
 	unsigned char salt[16];
 	unsigned char verifier[16]; /* or encryptedVerifier */

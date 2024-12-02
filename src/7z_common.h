@@ -32,7 +32,7 @@
 #define SALT_ALIGN              sizeof(sevenzip_salt_t*)
 
 typedef struct sevenzip_salt_s {
-	dyna_salt dsalt;
+	dyna_salt_t dsalt;
 	size_t aes_length;  /* AES length (even blocks) */
 	size_t packed_size; /* Deflated length */
 	size_t crc_len;     /* Inflated length */

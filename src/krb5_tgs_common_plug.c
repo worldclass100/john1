@@ -170,7 +170,7 @@ edata:
 	}
 	MEM_FREE(keeptr);
 
-	/* Set the JtR core linkage stuff for this dyna_salt */
+	/* Set the JtR core linkage stuff for this dyna_salt_t */
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(krb5tgs_salt, edata1);
 	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(krb5tgs_salt, edata1, edata2len, psalt->edata2len);
 	psalt->dsalt.salt_alloc_needs_free = 1;

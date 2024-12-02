@@ -31,7 +31,7 @@
 #define ARGON2_SALT_SIZE            64
 
 typedef struct {
-	dyna_salt dsalt;
+	dyna_salt_t dsalt;
 	uint32_t t_cost, m_cost, lanes;
 	uint32_t hash_size;
 	uint32_t salt_length;

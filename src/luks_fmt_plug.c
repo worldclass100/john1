@@ -121,7 +121,7 @@ struct luks_phdr {
 };
 
 static struct custom_salt_LUKS {
-	dyna_salt dsalt;
+	dyna_salt_t dsalt;
 	char path[8192];
 	int loaded;
 	struct luks_phdr myphdr;
