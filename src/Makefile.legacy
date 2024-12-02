@@ -347,8 +347,8 @@ linux-x86-64-avx512:
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
 		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX512F -DHAVE_CRYPT" \
-		CFLAGS="$(CFLAGS) -mavx512f -DHAVE_CRYPT" \
-		ASFLAGS="$(ASFLAGS) -mavx512f" \
+		CFLAGS="$(CFLAGS) -mavx512f -maes -mpclmul -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -mavx512f" -maes -mpclmul \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-x86-64-avx2:
@@ -357,8 +357,8 @@ linux-x86-64-avx2:
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
 		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX2 -DHAVE_CRYPT" \
-		CFLAGS="$(CFLAGS) -mavx2 -DHAVE_CRYPT" \
-		ASFLAGS="$(ASFLAGS) -mavx2" \
+		CFLAGS="$(CFLAGS) -mavx2 -maes -mpclmul -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -mavx2" -maes -mpclmul \
 		LDFLAGS="$(LDFLAGS) -lcrypt"
 
 linux-x86-64-xop:
@@ -380,8 +380,8 @@ linux-x86-64-avx:
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o simd-intrinsics.o" \
 		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX -DHAVE_CRYPT -DHAVE_LIBDL" \
-		CFLAGS="$(CFLAGS) -mavx -DHAVE_CRYPT -DHAVE_LIBDL" \
-		ASFLAGS="$(ASFLAGS) -mavx" \
+		CFLAGS="$(CFLAGS) -mavx -maes -mpclmul -DHAVE_CRYPT -DHAVE_LIBDL" \
+		ASFLAGS="$(ASFLAGS) -mavx" -maes -mpclmul \
 		LDFLAGS="$(LDFLAGS) -lcrypt -ldl"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
@@ -566,8 +566,8 @@ linux-x86-avx512:
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
 		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX512F -DHAVE_CRYPT" \
-		CFLAGS="$(CFLAGS) -m32 -mavx512f -DHAVE_CRYPT" \
-		ASFLAGS="$(ASFLAGS) -m32 -mavx512f" \
+		CFLAGS="$(CFLAGS) -m32 -mavx512f -maes -mpclmul -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -m32 -mavx512f" -maes -mpclmul \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 
 linux-x86-avx2:
@@ -576,8 +576,8 @@ linux-x86-avx2:
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
 		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX2 -DHAVE_CRYPT" \
-		CFLAGS="$(CFLAGS) -m32 -mavx2 -DHAVE_CRYPT" \
-		ASFLAGS="$(ASFLAGS) -m32 -mavx2" \
+		CFLAGS="$(CFLAGS) -m32 -mavx2 -maes -mpclmul -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -m32 -mavx2" -maes -mpclmul \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 
 linux-x86-xop:
@@ -599,8 +599,8 @@ linux-x86-avx:
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o simd-intrinsics.o" \
 		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX -DHAVE_CRYPT -D_LARGEFILE64_SOURCE" \
-		CFLAGS="$(CFLAGS) -m32 -mavx -DHAVE_CRYPT" \
-		ASFLAGS="$(ASFLAGS) -m32 -mavx" \
+		CFLAGS="$(CFLAGS) -m32 -mavx -maes -mpclmul -DHAVE_CRYPT" \
+		ASFLAGS="$(ASFLAGS) -m32 -mavx" -maes -mpclmul \
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
