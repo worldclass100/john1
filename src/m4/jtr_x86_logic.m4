@@ -491,6 +491,13 @@ if test $simd != yes; then
   fi
 fi
 
+if test "x$simd" != xno; then
+  CFLAGS_EX=""
+  dnl Add -maes -mpclmul if supported
+  JTR_FLAG_CHECK([-maes -mpclmul], 1)
+  CPU_BEST_FLAGS="$CPU_BEST_FLAGS $CFLAGS_EX"
+fi
+
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS_BACKUP"
 
