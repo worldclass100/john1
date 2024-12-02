@@ -372,7 +372,7 @@ int pkcs12_pbe_derive_key_simd_sha256( int iterations, int id, const unsigned ch
 }
 
 
-static void pkcs12_fill_salt_buffer_simd(unsigned char *data[SIMD_MAX_GROUP_PFX], size_t data_len,
+static void pkcs12_fill_salt_buffer_simd(unsigned char *data[], size_t data_len,
                                     const unsigned char *filler, size_t fill_len, int fill_count)
 {
 	int j;
@@ -393,9 +393,9 @@ static void pkcs12_fill_salt_buffer_simd(unsigned char *data[SIMD_MAX_GROUP_PFX]
 	}
 }
 
-static void pkcs12_fill_buffer_simd(unsigned char *data[SIMD_MAX_GROUP_PFX], size_t data_len,
-                                    const unsigned char *filler[SIMD_MAX_GROUP_PFX],
-				    size_t fill_len[SIMD_MAX_GROUP_PFX], int fill_count)
+static void pkcs12_fill_buffer_simd(unsigned char *data[], size_t data_len,
+                                    const unsigned char *filler[],
+				    size_t fill_len[], int fill_count)
 {
 	int j;
 	unsigned char *p;
