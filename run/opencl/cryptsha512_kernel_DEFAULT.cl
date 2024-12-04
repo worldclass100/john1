@@ -244,7 +244,7 @@ inline void sha512_digest_move(sha512_ctx * ctx,
                                uint64_t   * result,
                                const int size) {
 
-#ifdef UNROLL
+#if defined UNROLL && !__POCL__
     #pragma unroll
 #endif
     for (int i = 0; i < size; i++)

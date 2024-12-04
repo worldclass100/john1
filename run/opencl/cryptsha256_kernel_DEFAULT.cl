@@ -266,7 +266,9 @@ inline void sha256_digest_move(sha256_ctx * ctx,
                                uint32_t   * result,
                                const int size) {
 
+#if !__POCL__
     #pragma unroll
+#endif
     for (int i = 0; i < size; i++)
         result[i] = SWAP32(ctx->H[i]);
 }
