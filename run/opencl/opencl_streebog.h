@@ -948,7 +948,13 @@ GOST34112012Update(GOST34112012Context *CTX, const uchar *data, uint len, __loca
 }
 
 inline void
-GOST34112012Final(GOST34112012Context *CTX, uint512_u *digest, __local localbuf *loc_buf)
+GOST34112012Final(GOST34112012Context *CTX,
+#if STREEBOG512CRYPT
+                  uint512_u
+#else
+                  uint256_u
+#endif
+                  *digest, __local localbuf *loc_buf)
 {
 	stage3(CTX, loc_buf);
 
