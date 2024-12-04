@@ -1007,6 +1007,11 @@ typedef AES_CTX  AES_KEY;
 #define AES_encrypt(in, out, ctx)           AES_Encrypt(ctx, in, out)
 #define AES_decrypt(in, out, ctx)           AES_Decrypt(ctx, in, out)
 
+#define AES_ecb_encrypt_pp(in, out, len, ctx)	  \
+	AES_Encrypt_ECB_pp(ctx, in, out, (len) / AES_BLOCK_SIZE)
+#define AES_ecb_decrypt_pp(in, out, len, ctx)	  \
+	AES_Decrypt_ECB_pp(ctx, in, out, (len) / AES_BLOCK_SIZE)
+
 #if DO_MEMCPY
 #define AES_ecb_encrypt(in, out, len, ctx)	  \
 	AES_Encrypt_ECB(ctx, in, out, (len) / AES_BLOCK_SIZE)

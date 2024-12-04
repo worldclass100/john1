@@ -92,6 +92,21 @@ AES_ecb_encrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out, uint len,
 	AES_encrypt(in, out, akey);
 #endif
 }
+
+inline void
+AES_ecb_encrypt_pp(const void *_in, void *_out, uint len, AES_KEY *akey)
+{
+	const uchar *in = _in;
+	uchar *out = _out;
+
+	while (len > 16) {
+		AES_encrypt(in, out, akey);
+		len -= 16;
+		in += 16;
+		out += 16;
+	}
+	AES_encrypt(in, out, akey);
+}
 #endif /* AES_ecb_encrypt */
 
 #ifndef AES_ecb_decrypt
@@ -125,6 +140,21 @@ AES_ecb_decrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out, uint len,
 	AES_decrypt(in, out, akey);
 #endif
 }
+
+inline void
+AES_ecb_decrypt_pp(const void *_in, void *_out, uint len, AES_KEY *akey)
+{
+	const uchar *in = _in;
+	uchar *out = _out;
+
+	while (len > 16) {
+		AES_decrypt(in, out, akey);
+		len -= 16;
+		in += 16;
+		out += 16;
+	}
+	AES_decrypt(in, out, akey);
+}
 #endif /* AES_ecb_decrypt */
 
 inline void
@@ -155,34 +185,38 @@ AES_cbc_encrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
 	memcpy_macro(iv, ivec, 16);
 }
 
+/*
+ * This function decrypts two blocks at a time, to utilize
+ * that our bitsliced AES can do them in parallel.
+ */
 inline void
 AES_cbc_decrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
-                uint len, AES_KEY *akey,
-                void *_iv)
+                uint len, AES_KEY *akey, void *iv)
 {
 	AES_SRC_TYPE uchar *in = _in;
 	AES_DST_TYPE uchar *out = _out;
-	uchar *iv = _iv;
+	uchar *ivec = iv;
 
 	while (len) {
 		uint n;
-		uchar tmp[16];
+		uchar tmp[32];
+		uint dec_len = (len > 16) ? 32 : 16;
 
-		memcpy_macro(tmp, in, 16);
-		AES_decrypt(tmp, tmp, akey);
-		for (n = 0; n < 16 && n < len; ++n) {
+		memcpy_macro(tmp, in, dec_len);
+		AES_ecb_decrypt_pp(tmp, tmp, dec_len, akey);
+		for (n = 0; n < dec_len && n < len; ++n) {
 			uchar c = in[n];
-			out[n] = tmp[n] ^ iv[n];
-			iv[n] = c;
+			out[n] = tmp[n] ^ ivec[n & 15];
+			ivec[n & 15] = c;
 		}
-		if (len <= 16) {
-			for (; n < 16; ++n)
-				iv[n] = in[n];
+		if (len <= dec_len) {
+			for (; n < dec_len; ++n)
+				ivec[n & 15] = in[n & 15];
 			break;
 		}
-		len -= 16;
-		in  += 16;
-		out += 16;
+		len -= dec_len;
+		in  += dec_len;
+		out += dec_len;
 	}
 }
 
