@@ -119,7 +119,7 @@ inline void gost94_init(gost94_ctx *ctx)
  * @param hash intermediate message hash
  * @param block the message block to process
  */
-static void rhash_gost94_block_compress(gost94_ctx *ctx, const uint* block, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
+inline void rhash_gost94_block_compress(gost94_ctx *ctx, const uint* block, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
 {
 	uint i;
 	uint key[8], u[8], v[8], w[8], s[8];
@@ -261,7 +261,7 @@ static void rhash_gost94_block_compress(gost94_ctx *ctx, const uint* block, MAYB
  * @param ctx algorithm context
  * @param block the 256-bit message block to process
  */
-static void rhash_gost94_compute_sum_and_hash(gost94_ctx * ctx, const uint* block, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
+inline void rhash_gost94_compute_sum_and_hash(gost94_ctx * ctx, const uint* block, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
 {
 #if !__ENDIAN_LITTLE__
 	uint block_le[8]; /* tmp buffer for little endian number */
@@ -334,7 +334,7 @@ inline void gost94_update(gost94_ctx *ctx, const uchar* msg, uint size, MAYBE_LO
 }
 
 #if !__ENDIAN_LITTLE__
-static void rhash_u32_swap_copy(void* to, const void* from, uint length) {
+inline void rhash_u32_swap_copy(void* to, const void* from, uint length) {
 	uint i;
 	uint *pO, *pI;
 	pO = (uint *)to;
