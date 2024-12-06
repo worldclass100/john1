@@ -1142,7 +1142,7 @@ static char *get_build_opts(int sequential_id, const char *opts)
 #ifdef __APPLE__
 	        "-D__OS_X__ ",
 #else
-	        (options.verbosity >= VERB_MAX &&
+	        (options.verbosity >= VERB_LEGACY &&
 	         gpu_nvidia(device_info[sequential_id])) ?
 	         "-cl-nv-verbose " : "",
 #endif
